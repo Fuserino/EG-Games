@@ -6,59 +6,66 @@
 <title>🏇 Hei på hesten!</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&display=swap');
-  :root { --gold:#FFD700; --dark:#1a0f00; }
+  :root{--gold:#FFD700;--dark:#0d0d0d;}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  body{font-family:'Barlow Condensed',sans-serif;background:#0d0d0d;color:white;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px 16px 40px;}
+  body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:white;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 48px;}
 
-  .top{text-align:center;margin-bottom:28px;}
-  .top h1{font-family:'Bebas Neue',cursive;font-size:2.4rem;color:var(--gold);letter-spacing:4px;}
-  .top p{font-size:1rem;color:rgba(255,255,255,.5);letter-spacing:1px;margin-top:4px;}
+  .top{text-align:center;margin-bottom:20px;}
+  .top h1{font-family:'Bebas Neue',cursive;font-size:2.2rem;color:var(--gold);letter-spacing:4px;}
+  .top p{font-size:.95rem;color:rgba(255,255,255,.45);letter-spacing:1px;margin-top:4px;}
 
-  #status-msg{font-family:'Bebas Neue',cursive;font-size:1.1rem;letter-spacing:3px;color:rgba(255,215,0,.6);text-align:center;min-height:1.6rem;margin-bottom:16px;}
+  #status-bar{font-family:'Bebas Neue',cursive;font-size:1rem;letter-spacing:3px;text-align:center;padding:8px 20px;border-radius:20px;margin-bottom:18px;min-height:2.2rem;transition:all .3s;}
+  #status-bar.idle{color:rgba(255,255,255,.3);background:transparent;}
+  #status-bar.drawing{color:#ffcc44;background:rgba(255,200,0,.1);border:1px solid rgba(255,200,0,.25);animation:pulse 1.5s ease-in-out infinite;}
+  #status-bar.running{color:#44ff88;background:rgba(0,255,100,.1);border:1px solid rgba(0,255,100,.25);}
+  #status-bar.finished{color:var(--gold);background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.3);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
 
-  #horses-grid{display:flex;flex-direction:column;gap:14px;width:100%;max-width:420px;}
+  /* WINNER CARD */
+  #winner-card{display:none;width:100%;max-width:420px;background:linear-gradient(135deg,#1a0f00,#2d1a00);border:2px solid var(--gold);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px;animation:popIn .4s cubic-bezier(.34,1.56,.64,1);}
+  #winner-card.show{display:block;}
+  @keyframes popIn{from{transform:scale(.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .wc-trophy{font-size:2.8rem;margin-bottom:6px;}
+  .wc-label{font-family:'Bebas Neue',cursive;font-size:.9rem;letter-spacing:3px;color:rgba(255,215,0,.6);}
+  .wc-ticket{font-family:'Bebas Neue',cursive;font-size:2rem;color:white;letter-spacing:2px;margin:4px 0;}
+  .wc-wine{font-size:.9rem;color:rgba(255,255,255,.55);letter-spacing:1px;}
+
+  /* HORSES */
+  #horses-grid{display:flex;flex-direction:column;gap:12px;width:100%;max-width:420px;}
 
   .horse-btn{
     display:flex;align-items:center;gap:16px;
     background:rgba(255,255,255,.11);
-    border:2px solid rgba(255,255,255,.28);
-    border-radius:16px;padding:16px 20px;
-    cursor:pointer;transition:all .15s;
+    border:2px solid rgba(255,255,255,.22);
+    border-radius:16px;padding:15px 18px;
+    cursor:pointer;transition:all .2s;
     width:100%;text-align:left;
     -webkit-user-select:none;user-select:none;
+    animation:slideIn .35s cubic-bezier(.34,1.56,.64,1);
   }
+  @keyframes slideIn{from{transform:translateY(20px) scale(.9);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
   .horse-btn:active{transform:scale(0.96);}
-  .horse-btn.cheered{border-color:var(--gold);background:rgba(255,215,0,.15);box-shadow:0 0 16px rgba(255,215,0,.2);}
+  .horse-btn.locked{opacity:.55;cursor:not-allowed;}
+  .horse-btn.cheered{border-color:var(--gold);background:rgba(255,215,0,.14);box-shadow:0 0 18px rgba(255,215,0,.2);}
   .horse-btn.cheered .hb-name{color:var(--gold);}
 
-  .hb-bubble{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;border:3px solid;}
-  .hb-info{flex:1;}
-  .hb-name{font-family:'Bebas Neue',cursive;font-size:1.5rem;letter-spacing:2px;display:block;color:white;}
-  .hb-ticket{font-size:.9rem;color:rgba(255,255,255,.7);letter-spacing:1px;display:block;margin-top:2px;}
-  .hb-cheers{font-family:'Bebas Neue',cursive;font-size:1.4rem;color:rgba(255,255,255,.5);letter-spacing:1px;flex-shrink:0;min-width:40px;text-align:right;}
+  .hb-bubble{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.75rem;flex-shrink:0;border:3px solid;}
+  .hb-info{flex:1;min-width:0;}
+  .hb-name{font-family:'Bebas Neue',cursive;font-size:1.45rem;letter-spacing:2px;display:block;color:white;}
+  .hb-ticket{font-size:.88rem;color:rgba(255,255,255,.65);letter-spacing:1px;display:block;margin-top:2px;}
+  .hb-cheers{font-family:'Bebas Neue',cursive;font-size:1.3rem;color:rgba(255,255,255,.45);flex-shrink:0;min-width:44px;text-align:right;}
   .hb-cheers.active{color:var(--gold);}
 
-  .cheer-pop{
-    position:fixed;pointer-events:none;font-size:2.5rem;
-    animation:popUp 1s ease-out forwards;z-index:99;
-  }
-  @keyframes popUp{
-    0%{transform:translateY(0) scale(0.5);opacity:1;}
-    60%{transform:translateY(-80px) scale(1.3);opacity:1;}
-    100%{transform:translateY(-130px) scale(1);opacity:0;}
-  }
+  /* STATES */
+  .state-msg{text-align:center;padding:32px 16px;color:rgba(255,255,255,.35);font-size:1rem;letter-spacing:1px;line-height:1.6;}
+  .state-msg .icon{font-size:2.8rem;display:block;margin-bottom:10px;}
 
-  .waiting{text-align:center;padding:40px 20px;color:rgba(255,255,255,.4);font-size:1rem;letter-spacing:1px;}
-  .waiting .icon{font-size:3rem;display:block;margin-bottom:12px;}
+  .my-cheer-banner{display:none;width:100%;max-width:420px;text-align:center;padding:12px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.25);border-radius:12px;margin-top:8px;font-family:'Bebas Neue',cursive;font-size:1.1rem;color:var(--gold);letter-spacing:2px;}
+  .my-cheer-banner.show{display:block;}
+  .my-cheer-sub{font-family:'Barlow Condensed',sans-serif;font-size:.85rem;color:rgba(255,215,0,.55);letter-spacing:1px;margin-top:2px;}
 
-  .already-cheered{
-    text-align:center;padding:24px;
-    background:rgba(255,215,0,.08);
-    border:1px solid rgba(255,215,0,.3);
-    border-radius:16px;max-width:420px;width:100%;
-    font-family:'Bebas Neue',cursive;font-size:1.2rem;color:var(--gold);letter-spacing:2px;
-    display:none;
-  }
+  .cheer-pop{position:fixed;pointer-events:none;font-size:2.2rem;animation:popUp .9s ease-out forwards;z-index:99;}
+  @keyframes popUp{0%{transform:translateY(0) scale(.5);opacity:1;}60%{transform:translateY(-70px) scale(1.2);opacity:1;}100%{transform:translateY(-120px) scale(1);opacity:0;}}
 </style>
 </head>
 <body>
@@ -68,16 +75,22 @@
   <p>Trykk på hesten du heier på</p>
 </div>
 
-<div id="status-msg">Kobler til...</div>
+<div id="status-bar" class="idle">Kobler til...</div>
+<div id="winner-card">
+  <div class="wc-trophy">🏆</div>
+  <div class="wc-label">VINNEREN ER</div>
+  <div class="wc-ticket" id="wc-ticket"></div>
+  <div class="wc-wine" id="wc-wine"></div>
+</div>
 <div id="horses-grid"></div>
-<div class="already-cheered" id="already-cheered">
-  🎉 Du heier på <span id="my-horse-name"></span>!<br>
-  <span style="font-size:.9rem;color:rgba(255,215,0,.6);letter-spacing:1px;">Trykk igjen for å bytte hest</span>
+<div class="my-cheer-banner" id="my-banner">
+  <div id="my-banner-text">Du heier på ???</div>
+  <div class="my-cheer-sub">Trykk på en annen for å bytte</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, runTransaction, set, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBf2y5UvDRCcw3tlLiX6D2-Kpm5QygyXN4",
@@ -93,102 +106,153 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const grid = document.getElementById('horses-grid');
-const statusMsg = document.getElementById('status-msg');
-const alreadyCheered = document.getElementById('already-cheered');
-const myHorseName = document.getElementById('my-horse-name');
+const statusBar = document.getElementById('status-bar');
+const winnerCard = document.getElementById('winner-card');
+const myBanner = document.getElementById('my-banner');
+const myBannerText = document.getElementById('my-banner-text');
 
-let myCheer = null; // which horse index this user is cheering for
-let currentHorses = [];
+let myCheer = null;
+let raceStatus = 'idle';
+let horses = {};      // keyed by index, revealed one by one
 let cheerCounts = {};
 
-// Listen for current race horses
-const racingRef = ref(db, 'currentRace/horses');
-onValue(racingRef, (snap) => {
-  const horses = snap.val();
-  if (!horses || !Array.isArray(horses) || horses.length === 0) {
-    grid.innerHTML = `<div class="waiting"><span class="icon">⏳</span>Venter på at løpet starter...</div>`;
-    statusMsg.textContent = 'Intet løp pågår';
+// ── Listen to entire currentRace node ──
+onValue(ref(db, 'currentRace'), (snap) => {
+  const data = snap.val();
+  if (!data) {
+    setStatus('idle', 'Ingen løp pågår');
+    winnerCard.classList.remove('show');
+    grid.innerHTML = `<div class="state-msg"><span class="icon">⏳</span>Venter på at løpet starter...</div>`;
     return;
   }
-  currentHorses = horses;
-  statusMsg.textContent = 'Velg din hest!';
+
+  const newStatus = data.status || 'idle';
+  const newHorses = data.horses || {};
+  cheerCounts = data.cheers || {};
+
+  // Status changed
+  if (newStatus !== raceStatus) {
+    raceStatus = newStatus;
+    handleStatusChange(raceStatus, data);
+  }
+
+  // Update horses (revealed incrementally during drawing)
+  horses = newHorses;
   renderHorses();
+  updateCounts();
+
+  // Winner
+  if (raceStatus === 'finished' && data.winner) {
+    showWinner(data.winner);
+  } else {
+    winnerCard.classList.remove('show');
+  }
 });
 
-// Listen for cheer counts
-const cheersRef = ref(db, 'currentRace/cheers');
-onValue(cheersRef, (snap) => {
-  cheerCounts = snap.val() || {};
-  updateCounts();
-});
+function handleStatusChange(status, data) {
+  if (status === 'drawing') {
+    setStatus('drawing', '🎫 TREKNING PÅGÅR...');
+    myCheer = null;
+    myBanner.classList.remove('show');
+    winnerCard.classList.remove('show');
+  } else if (status === 'running') {
+    setStatus('running', '🏁 LØPET ER I GANG – HEI!');
+  } else if (status === 'finished') {
+    setStatus('finished', '🏆 LØPET ER FERDIG!');
+  } else {
+    setStatus('idle', 'Ingen løp pågår');
+  }
+}
+
+function setStatus(cls, text) {
+  statusBar.className = 'idle';
+  statusBar.className = cls;
+  statusBar.textContent = text;
+}
 
 function renderHorses() {
-  grid.innerHTML = '';
-  currentHorses.forEach((h, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'horse-btn' + (myCheer === i ? ' cheered' : '');
-    btn.id = 'hbtn-' + i;
+  const keys = Object.keys(horses).sort((a,b) => +a - +b);
 
-    const count = cheerCounts[i] || 0;
-    const bubbleBg = `radial-gradient(circle at 40% 40%, ${h.colorHex}cc, ${h.colorHex}44)`;
+  if (keys.length === 0 && raceStatus === 'drawing') {
+    grid.innerHTML = `<div class="state-msg"><span class="icon">🎲</span>Lodder trekkes...<br>Hestene vises etter hvert</div>`;
+    return;
+  }
 
-    btn.innerHTML = `
-      <div class="hb-bubble" style="background:${bubbleBg};border-color:${h.colorHex};border-width:3px;">
-        <span>${h.emoji}</span>
-      </div>
-      <div class="hb-info">
-        <span class="hb-name">${h.name}</span>
-        <span class="hb-ticket">${h.ticket}</span>
-      </div>
-      <div class="hb-cheers ${count > 0 ? 'active' : ''}" id="hcount-${i}">
-        ${count > 0 ? '🔥 ' + count : ''}
-      </div>`;
+  // Add new horses or update existing
+  keys.forEach(idx => {
+    const h = horses[idx];
+    const existingBtn = document.getElementById('hbtn-' + idx);
+    if (!existingBtn) {
+      // New horse revealed – create button
+      const btn = document.createElement('button');
+      btn.className = 'horse-btn' + (raceStatus !== 'running' ? ' locked' : '');
+      btn.id = 'hbtn-' + idx;
+      const bubbleBg = `radial-gradient(circle at 40% 40%, ${h.colorHex}cc, ${h.colorHex}44)`;
+      const count = cheerCounts[idx] || 0;
+      btn.innerHTML = `
+        <div class="hb-bubble" style="background:${bubbleBg};border-color:${h.colorHex};border-width:3px;">
+          <span>${h.emoji}</span>
+        </div>
+        <div class="hb-info">
+          <span class="hb-name">${h.name}</span>
+          <span class="hb-ticket">${h.ticket}</span>
+        </div>
+        <div class="hb-cheers${count>0?' active':''}" id="hcount-${idx}">${count>0?'🔥 '+count:''}</div>`;
+      btn.addEventListener('click', () => cheer(+idx, btn, h));
+      grid.appendChild(btn);
+    }
 
-    btn.addEventListener('click', () => cheer(i, btn));
-    grid.appendChild(btn);
+    // Lock/unlock based on status
+    const btn = document.getElementById('hbtn-' + idx);
+    if (btn) {
+      if (raceStatus === 'running') {
+        btn.classList.remove('locked');
+        if (+idx === myCheer) btn.classList.add('cheered');
+      } else {
+        btn.classList.add('locked');
+        btn.classList.remove('cheered');
+      }
+    }
   });
-  updateAlreadyCheered();
 }
 
 function updateCounts() {
-  currentHorses.forEach((h, i) => {
-    const el = document.getElementById('hcount-' + i);
+  Object.keys(horses).forEach(idx => {
+    const el = document.getElementById('hcount-' + idx);
     if (!el) return;
-    const count = cheerCounts[i] || 0;
+    const count = cheerCounts[idx] || 0;
     el.textContent = count > 0 ? '🔥 ' + count : '';
     el.className = 'hb-cheers' + (count > 0 ? ' active' : '');
   });
 }
 
-function updateAlreadyCheered() {
-  if (myCheer !== null && currentHorses[myCheer]) {
-    alreadyCheered.style.display = 'block';
-    myHorseName.textContent = currentHorses[myCheer].name;
-  } else {
-    alreadyCheered.style.display = 'none';
-  }
+function showWinner(winner) {
+  document.getElementById('wc-ticket').textContent = winner.name || '???';
+  document.getElementById('wc-wine').textContent = winner.ticket || '';
+  winnerCard.classList.add('show');
 }
 
-async function cheer(idx, btn) {
-  // Remove previous cheer if switching
+async function cheer(idx, btn, horse) {
+  if (raceStatus !== 'running') return;
+
+  // Remove previous cheer
   if (myCheer !== null && myCheer !== idx) {
     const prevRef = ref(db, `currentRace/cheers/${myCheer}`);
-    await runTransaction(prevRef, (val) => Math.max(0, (val || 0) - 1));
+    await runTransaction(prevRef, v => Math.max(0, (v || 0) - 1));
     document.getElementById('hbtn-' + myCheer)?.classList.remove('cheered');
   }
 
-  if (myCheer === idx) return; // already cheering this one, do nothing
+  if (myCheer === idx) return;
 
   myCheer = idx;
   btn.classList.add('cheered');
 
-  // Increment cheer count
   const cheerRef = ref(db, `currentRace/cheers/${idx}`);
-  await runTransaction(cheerRef, (val) => (val || 0) + 1);
+  await runTransaction(cheerRef, v => (v || 0) + 1);
 
-  updateAlreadyCheered();
+  myBannerText.textContent = 'Du heier på ' + horse.name + '!';
+  myBanner.classList.add('show');
   spawnPop(btn);
-  statusMsg.textContent = '🔥 HEIER PÅ ' + currentHorses[idx].name.toUpperCase() + '!';
 }
 
 function spawnPop(btn) {
@@ -196,10 +260,10 @@ function spawnPop(btn) {
   const pop = document.createElement('div');
   pop.className = 'cheer-pop';
   pop.textContent = ['🎉','🔥','⚡','💪','🏆'][Math.floor(Math.random()*5)];
-  pop.style.left = (rect.left + rect.width/2 - 20) + 'px';
-  pop.style.top = (rect.top + rect.height/2) + 'px';
+  pop.style.left = (rect.left + rect.width/2 - 16) + 'px';
+  pop.style.top = (rect.top) + 'px';
   document.body.appendChild(pop);
-  setTimeout(() => pop.remove(), 1100);
+  setTimeout(() => pop.remove(), 1000);
 }
 </script>
 </body>
