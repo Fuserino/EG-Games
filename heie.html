@@ -186,10 +186,6 @@ async function cheer(idx, btn) {
   const cheerRef = ref(db, `currentRace/cheers/${idx}`);
   await runTransaction(cheerRef, (val) => (val || 0) + 1);
 
-  // Send a cheer boost event
-  const boostRef = ref(db, `currentRace/boostQueue/${Date.now()}`);
-  await set(boostRef, { horseIdx: idx, ts: Date.now() });
-
   updateAlreadyCheered();
   spawnPop(btn);
   statusMsg.textContent = '🔥 HEIER PÅ ' + currentHorses[idx].name.toUpperCase() + '!';
