@@ -1419,6 +1419,24 @@ function toggleScoreboard(){document.getElementById('scoreboard').classList.togg
 function updateScoreboard(){document.getElementById('sb-results').innerHTML=state.results.map((r,i)=>`<div class="sb-item"><span class="sb-wine">${i+1}. ${r.wineName}</span><span class="sb-ticket">${r.ticket}</span></div>`).join('');}
 function spawnConfetti(count){count=count||50;const colors=['#FFD700','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#FF9FF3'];for(let i=0;i<count;i++)setTimeout(()=>{const el=document.createElement('div');el.className='confetti';el.style.left=Math.random()*100+'vw';el.style.width=(7+Math.random()*9)+'px';el.style.height=(7+Math.random()*9)+'px';el.style.background=colors[Math.floor(Math.random()*colors.length)];el.style.borderRadius=Math.random()>.5?'50%':'0';const dur=2+Math.random()*3;el.style.animation='confettiFall '+dur+'s linear forwards';document.body.appendChild(el);setTimeout(()=>el.remove(),dur*1000+100);},i*35);}
 
+
+// ── Expose functions to global scope (required for onclick in module script) ──
+window.startShow = startShow;
+window.goToSetup = goToSetup;
+window.addBlock = addBlock;
+window.removeBlock = removeBlock;
+window.updateBlock = updateBlock;
+window.addWine = addWine;
+window.removeWine = removeWine;
+window.updateWine = updateWine;
+window.updateSettingLabel = updateSettingLabel;
+window.startRace = startRace;
+window.nextRace = nextRace;
+window.closeWinner = closeWinner;
+window.toggleScoreboard = toggleScoreboard;
+window.toggleQR = toggleQR;
+window.closeDrawTickets = closeDrawTickets;
+
 // INIT
 (function(){
   updateSettingLabel('speed',3);updateSettingLabel('duration',40);
