@@ -130,11 +130,9 @@ onValue(ref(db, 'currentRace'), (snap) => {
   const newHorses = data.horses || {};
   cheerCounts = data.cheers || {};
 
-  // Status changed
-  if (newStatus !== raceStatus) {
-    raceStatus = newStatus;
-    handleStatusChange(raceStatus, data);
-  }
+  // Always update status (not just on change)
+  raceStatus = newStatus;
+  handleStatusChange(raceStatus, data);
 
   // Update horses (revealed incrementally during drawing)
   horses = newHorses;
@@ -152,8 +150,6 @@ onValue(ref(db, 'currentRace'), (snap) => {
 function handleStatusChange(status, data) {
   if (status === 'drawing') {
     setStatus('drawing', '🎫 TREKNING PÅGÅR...');
-    myCheer = null;
-    myBanner.classList.remove('show');
     winnerCard.classList.remove('show');
   } else if (status === 'running') {
     setStatus('running', '🏁 LØPET ER I GANG – HEI!');
@@ -161,6 +157,9 @@ function handleStatusChange(status, data) {
     setStatus('finished', '🏆 LØPET ER FERDIG!');
   } else {
     setStatus('idle', 'Ingen løp pågår');
+    myCheer = null;
+    myBanner.classList.remove('show');
+    winnerCard.classList.remove('show');
   }
 }
 
