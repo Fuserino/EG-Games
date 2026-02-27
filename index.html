@@ -65,7 +65,9 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
 .horse-wrapper{position:absolute;left:130px;top:50%;transform:translateY(-50%);z-index:10;display:flex;align-items:center;gap:4px;pointer-events:none;}
 .horse-emoji{font-size:3rem;filter:drop-shadow(2px 2px 4px rgba(0,0,0,.6));display:block;}
 
-.horse-bubble{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.horse-bubble{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+.cheer-badge{position:absolute;top:-8px;right:-10px;background:rgba(255,80,0,.92);border:1.5px solid #ffcc00;border-radius:10px;padding:1px 5px;font-family:'Bebas Neue',cursive;font-size:.75rem;color:white;letter-spacing:.5px;white-space:nowrap;pointer-events:none;z-index:30;animation:cheerBadgePop .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes cheerBadgePop{from{transform:scale(0);}to{transform:scale(1);}}
 .horse-running .horse-emoji{animation:gallop .28s steps(2) infinite;}
 .horse-reversed .horse-emoji{transform:scaleX(-1);}
 .horse-reversed.horse-running .horse-emoji{animation:gallopReverse .28s steps(2) infinite;}
@@ -224,6 +226,39 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
 .cheer-bar-segment{flex:0 0 auto;height:100%;transition:flex-basis .5s ease;}
 #cheer-toast{position:fixed;top:44px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:500;background:rgba(255,215,0,.95);color:#1a0f00;font-family:'Bebas Neue',cursive;font-size:1.2rem;letter-spacing:3px;padding:8px 24px;border-radius:24px;pointer-events:none;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
 #cheer-toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── PIN SCREEN ── */
+#pin-view{position:fixed;inset:0;background:linear-gradient(160deg,#0a0700,#1a0f00);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+#pin-view.hidden{display:none;}
+.pin-logo{font-family:'Bebas Neue',cursive;font-size:3rem;color:var(--gold);letter-spacing:6px;text-shadow:0 0 30px rgba(255,215,0,.4);}
+.pin-sub{font-size:.95rem;color:rgba(255,255,255,.4);letter-spacing:2px;margin-top:-14px;}
+.pin-box{background:rgba(255,255,255,.05);border:1px solid rgba(255,215,0,.2);border-radius:14px;padding:28px 32px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;}
+.pin-label{font-family:'Bebas Neue',cursive;font-size:1rem;color:rgba(255,215,0,.7);letter-spacing:3px;}
+#pin-input{background:rgba(0,0,0,.5);border:2px solid rgba(255,215,0,.3);color:var(--gold);font-family:'Bebas Neue',cursive;font-size:2rem;letter-spacing:8px;text-align:center;width:100%;padding:10px;border-radius:8px;outline:none;}
+#pin-input:focus{border-color:var(--gold);}
+#pin-input.error{border-color:#ff4444;animation:pinShake .3s ease-out;}
+@keyframes pinShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
+#pin-error{color:#ff6060;font-size:.85rem;letter-spacing:1px;min-height:1.2rem;}
+.pin-btn{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--dark);border:none;padding:11px 36px;font-family:'Bebas Neue',cursive;font-size:1.4rem;letter-spacing:3px;border-radius:8px;cursor:pointer;width:100%;}
+.pin-btn:hover{filter:brightness(1.1);}
+
+/* ── ACTIVE RACE SCREEN ── */
+#active-race-view{position:fixed;inset:0;background:linear-gradient(160deg,#0a0700,#1a0f00);z-index:8000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;}
+#active-race-view.hidden{display:none;}
+.ar-title{font-family:'Bebas Neue',cursive;font-size:1.8rem;color:var(--gold);letter-spacing:4px;text-align:center;}
+.ar-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.25);border-radius:14px;padding:24px 28px;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px;}
+.ar-status{font-family:'Bebas Neue',cursive;font-size:1rem;letter-spacing:3px;padding:5px 14px;border-radius:20px;display:inline-block;align-self:flex-start;}
+.ar-status.drawing{background:rgba(255,200,0,.15);color:#ffcc44;border:1px solid rgba(255,200,0,.3);}
+.ar-status.running{background:rgba(0,255,100,.12);color:#44ff88;border:1px solid rgba(0,255,100,.25);}
+.ar-status.finished{background:rgba(255,215,0,.12);color:var(--gold);border:1px solid rgba(255,215,0,.3);}
+.ar-info{font-size:.95rem;color:rgba(255,255,255,.6);line-height:1.5;}
+.ar-info strong{color:rgba(255,255,255,.9);}
+.ar-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:480px;}
+.ar-btn-continue{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--dark);border:none;padding:13px;font-family:'Bebas Neue',cursive;font-size:1.3rem;letter-spacing:3px;border-radius:10px;cursor:pointer;width:100%;}
+.ar-btn-continue:hover{filter:brightness(1.1);}
+.ar-btn-reset{background:rgba(204,34,0,.2);color:#ff6060;border:1px solid rgba(204,34,0,.3);padding:11px;font-family:'Bebas Neue',cursive;font-size:1.1rem;letter-spacing:2px;border-radius:10px;cursor:pointer;width:100%;}
+.ar-btn-reset:hover{background:rgba(204,34,0,.35);}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -231,8 +266,34 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
 <div id="chaos-overlay"></div>
 <div id="event-banner-stack"></div>
 
+<!-- PIN SCREEN -->
+<div id="pin-view">
+  <div class="pin-logo">🏇 Vinlotteri</div>
+  <div class="pin-sub">ADMIN-TILGANG</div>
+  <div class="pin-box">
+    <div class="pin-label">🔐 Skriv inn PIN</div>
+    <input id="pin-input" type="password" inputmode="numeric" maxlength="8" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
+    <div id="pin-error"></div>
+    <button class="pin-btn" onclick="checkPin()">LOGG INN</button>
+  </div>
+</div>
+
+<!-- ACTIVE RACE SCREEN -->
+<div id="active-race-view" class="hidden">
+  <div class="ar-title">⚠️ ET LØP PÅGÅR ALLEREDE</div>
+  <div class="ar-card">
+    <div id="ar-status-badge" class="ar-status running">KJØRER</div>
+    <div class="ar-info" id="ar-info">Løp pågår...</div>
+  </div>
+  <div class="ar-actions">
+    <button class="ar-btn-continue" onclick="continueExistingRace()">▶ FORTSETT PÅGÅENDE LØP</button>
+    <button class="ar-btn-reset" onclick="confirmResetRace()">✕ STOPP OG START NYTT LØP</button>
+  </div>
+</div>
+
+
 <!-- SETUP VIEW -->
-<div id="setup-view" class="view active">
+<div id="setup-view" class="view">
   <div class="setup-header">
     <h1>🏇 Vinlotteri</h1>
     <p>Hesteveddeløp – Oppsett</p>
@@ -478,6 +539,25 @@ function updateCheerBar(){
     const pct = (count/total*100).toFixed(1);
     return `<div class="cheer-bar-segment" style="flex-basis:${pct}%;background:${h.colorObj.hex};opacity:.8;" title="${h.name}: ${count}"></div>`;
   }).join('');
+  // Update flame badges on each horse bubble
+  state.horses.forEach((h,i)=>{
+    const wrapper = document.getElementById('horse-'+i);
+    if(!wrapper) return;
+    const bubble = wrapper.querySelector('.horse-bubble');
+    if(!bubble) return;
+    let badge = bubble.querySelector('.cheer-badge');
+    const count = _cheerCounts[i]||0;
+    if(count>0){
+      if(!badge){
+        badge = document.createElement('div');
+        badge.className = 'cheer-badge';
+        bubble.appendChild(badge);
+      }
+      badge.textContent = '🔥 '+count;
+    } else {
+      if(badge) badge.remove();
+    }
+  });
 }
 
 // QR code
@@ -885,6 +965,116 @@ function commentOnEvent(evtId, horseName){
   }
 }
 
+
+// ══════════════════════════════════════════════════════
+// PIN + ACTIVE RACE ADMIN LOGIC
+// ══════════════════════════════════════════════════════
+let _adminUnlocked = false;
+
+function checkPin(){
+  const input = document.getElementById('pin-input');
+  const entered = input.value.trim();
+  if(!entered){ showPinError('Skriv inn PIN'); return; }
+
+  firebase.database().ref('adminPin').once('value', (snap)=>{
+    const correctPin = String(snap.val());
+    if(entered === correctPin){
+      _adminUnlocked = true;
+      document.getElementById('pin-view').classList.add('hidden');
+      // Check if a race is already running in Firebase
+      checkForActiveRace();
+    } else {
+      showPinError('Feil PIN – prøv igjen');
+      input.value = '';
+      input.classList.add('error');
+      setTimeout(()=>input.classList.remove('error'), 400);
+    }
+  }, (err)=>{
+    showPinError('Kunne ikke koble til – prøv igjen');
+  });
+}
+
+function showPinError(msg){
+  document.getElementById('pin-error').textContent = msg;
+  setTimeout(()=>document.getElementById('pin-error').textContent='', 2500);
+}
+
+function checkForActiveRace(){
+  firebase.database().ref('currentRace').once('value', (snap)=>{
+    const data = snap.val();
+    if(!data || !data.status || data.status === 'idle'){
+      // No active race – go straight to setup
+      showSetup();
+      return;
+    }
+    // Active race found – show the active race screen
+    showActiveRaceScreen(data);
+  });
+}
+
+function showActiveRaceScreen(data){
+  const status = data.status;
+  const badge = document.getElementById('ar-status-badge');
+  const info = document.getElementById('ar-info');
+
+  badge.className = 'ar-status ' + status;
+  const statusLabels = {drawing:'🎫 TREKNING PÅGÅR', running:'🏁 LØP KJØRER', finished:'🏆 LØP FERDIG'};
+  badge.textContent = statusLabels[status] || status.toUpperCase();
+
+  // Build info text
+  let infoHtml = '';
+  if(data.horses){
+    const horseList = Object.values(data.horses).map(h=>`<strong>${h.name}</strong> (${h.ticket})`).join(', ');
+    infoHtml += 'Hester: ' + horseList + '<br>';
+  }
+  if(status === 'finished' && data.winner){
+    infoHtml += '<br>Vinner: <strong>' + data.winner.name + '</strong> – ' + (data.winner.ticket||'');
+  }
+  info.innerHTML = infoHtml || 'Henter informasjon...';
+
+  document.getElementById('active-race-view').classList.remove('hidden');
+}
+
+function continueExistingRace(){
+  document.getElementById('active-race-view').classList.add('hidden');
+  // Show race view and restore state as best we can
+  firebase.database().ref('currentRace').once('value', (snap)=>{
+    const data = snap.val();
+    if(!data){ showSetup(); return; }
+    const status = data.status;
+    if(status === 'finished'){
+      // Race finished – go to setup for next
+      fbClearRace();
+      showSetup();
+    } else {
+      // Race is drawing or running – jump into race view
+      document.getElementById('setup-view').classList.remove('active');
+      document.getElementById('race-view').classList.add('active');
+      buildFinishLine();
+      // Restore basic race state so UI works
+      if(data.horses){
+        // Re-populate state.horses from Firebase data enough to show race view
+        // The race tick may not be running, but admin can see the view
+      }
+      updatePhase(status==='drawing'?'🎫 Trekning pågår...':'🏇 Løp pågår...');
+      document.getElementById('btn-start-race').style.display='none';
+      document.getElementById('btn-next-race').style.display='none';
+    }
+  });
+}
+
+function confirmResetRace(){
+  if(confirm('Er du sikker? Dette stopper pågående løp og starter helt på nytt.')){
+    firebase.database().ref('currentRace').set({status:'idle'});
+    document.getElementById('active-race-view').classList.add('hidden');
+    showSetup();
+  }
+}
+
+function showSetup(){
+  document.getElementById('setup-view').classList.add('active');
+}
+
 // SETTINGS
 function updateSettingLabel(key,val){
   val=+val;
@@ -911,8 +1101,8 @@ function updateWine(id,field,val){const w=state.wines.find(w=>w.id===id);if(w)w[
 function renderWines(){document.getElementById('wine-list').innerHTML=state.wines.map((w,i)=>`<div class="wine-item"><div class="wine-num">${i+1}</div><input type="text" value="${w.name}" placeholder="Vinnavn (valgfritt)" onchange="updateWine(${w.id},'name',this.value)"><button class="remove-btn" onclick="removeWine(${w.id})">✕</button></div>`).join('');}
 
 // SHOW INIT
-function startShow(){const active=state.blocks.filter(b=>b.active);if(active.length<2){alert('Legg til minst 2 aktive loddblokker!');return;}if(state.wines.length===0){alert('Legg til minst 1 vin!');return;}state.raceOrder=state.wines.map((_,i)=>i);state.currentRace=0;state.results=[];state.usedTickets={};document.getElementById('setup-view').classList.remove('active');document.getElementById('race-view').classList.add('active');buildFinishLine();setupRace();}
-function goToSetup(){state.racePhase='idle';stopRaceAmbience();document.getElementById('race-view').classList.remove('active');document.getElementById('setup-view').classList.add('active');}
+function startShow(){if(!_adminUnlocked){alert("Ikke autorisert");return;}const active=state.blocks.filter(b=>b.active);if(active.length<2){alert('Legg til minst 2 aktive loddblokker!');return;}if(state.wines.length===0){alert('Legg til minst 1 vin!');return;}state.raceOrder=state.wines.map((_,i)=>i);state.currentRace=0;state.results=[];state.usedTickets={};document.getElementById('setup-view').classList.remove('active');document.getElementById('race-view').classList.add('active');buildFinishLine();setupRace();}
+function goToSetup(){if(!_adminUnlocked)return;state.racePhase='idle';stopRaceAmbience();document.getElementById('race-view').classList.remove('active');showSetup();}
 function buildFinishLine(){const c=document.getElementById('finish-checker');c.innerHTML='';for(let i=0;i<100;i++){const d=document.createElement('div');d.className='finish-cell';c.appendChild(d);}}
 
 
