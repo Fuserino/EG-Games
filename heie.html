@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🏇 Hei på hesten!</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&display=swap');
+  :root { --gold:#FFD700; --dark:#1a0f00; }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Barlow Condensed',sans-serif;background:#0d0d0d;color:white;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px 16px 40px;}
+
+  .top{text-align:center;margin-bottom:28px;}
+  .top h1{font-family:'Bebas Neue',cursive;font-size:2.4rem;color:var(--gold);letter-spacing:4px;}
+  .top p{font-size:1rem;color:rgba(255,255,255,.5);letter-spacing:1px;margin-top:4px;}
+
+  #status-msg{font-family:'Bebas Neue',cursive;font-size:1.1rem;letter-spacing:3px;color:rgba(255,215,0,.6);text-align:center;min-height:1.6rem;margin-bottom:16px;}
+
+  #horses-grid{display:flex;flex-direction:column;gap:14px;width:100%;max-width:420px;}
+
+  .horse-btn{
+    display:flex;align-items:center;gap:16px;
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.12);
+    border-radius:16px;padding:16px 20px;
+    cursor:pointer;transition:all .15s;
+    width:100%;text-align:left;
+    -webkit-user-select:none;user-select:none;
+  }
+  .horse-btn:active{transform:scale(0.96);}
+  .horse-btn.cheered{border-color:var(--gold);background:rgba(255,215,0,.1);}
+  .horse-btn.cheered .hb-name{color:var(--gold);}
+
+  .hb-bubble{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;border:2px solid;}
+  .hb-info{flex:1;}
+  .hb-name{font-family:'Bebas Neue',cursive;font-size:1.5rem;letter-spacing:2px;display:block;}
+  .hb-ticket{font-size:.85rem;color:rgba(255,255,255,.45);letter-spacing:1px;display:block;margin-top:1px;}
+  .hb-cheers{font-family:'Bebas Neue',cursive;font-size:1.4rem;color:rgba(255,255,255,.3);letter-spacing:1px;flex-shrink:0;min-width:40px;text-align:right;}
+  .hb-cheers.active{color:var(--gold);}
+
+  .cheer-pop{
+    position:fixed;pointer-events:none;font-size:2.5rem;
+    animation:popUp 1s ease-out forwards;z-index:99;
+  }
+  @keyframes popUp{
+    0%{transform:translateY(0) scale(0.5);opacity:1;}
+    60%{transform:translateY(-80px) scale(1.3);opacity:1;}
+    100%{transform:translateY(-130px) scale(1);opacity:0;}
+  }
+
+  .waiting{text-align:center;padding:40px 20px;color:rgba(255,255,255,.4);font-size:1rem;letter-spacing:1px;}
+  .waiting .icon{font-size:3rem;display:block;margin-bottom:12px;}
+
+  .already-cheered{
+    text-align:center;padding:24px;
+    background:rgba(255,215,0,.08);
+    border:1px solid rgba(255,215,0,.3);
+    border-radius:16px;max-width:420px;width:100%;
+    font-family:'Bebas Neue',cursive;font-size:1.2rem;color:var(--gold);letter-spacing:2px;
+    display:none;
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🏇 Hei på hesten!</h1>
+  <p>Trykk på hesten du heier på</p>
+</div>
+
+<div id="status-msg">Kobler til...</div>
+<div id="horses-grid"></div>
+<div class="already-cheered" id="already-cheered">
+  🎉 Du heier på <span id="my-horse-name"></span>!<br>
+  <span style="font-size:.9rem;color:rgba(255,215,0,.6);letter-spacing:1px;">Trykk igjen for å bytte hest</span>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, runTransaction, set, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBf2y5UvDRCcw3tlLiX6D2-Kpm5QygyXN4",
+  authDomain: "eg-games-708e8.firebaseapp.com",
+  databaseURL: "https://eg-games-708e8-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "eg-games-708e8",
+  storageBucket: "eg-games-708e8.firebasestorage.app",
+  messagingSenderId: "706613204445",
+  appId: "1:706613204445:web:3f754ac728cd46f0281234"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const grid = document.getElementById('horses-grid');
+const statusMsg = document.getElementById('status-msg');
+const alreadyCheered = document.getElementById('already-cheered');
+const myHorseName = document.getElementById('my-horse-name');
+
+let myCheer = null; // which horse index this user is cheering for
+let currentHorses = [];
+let cheerCounts = {};
+
+// Listen for current race horses
+const racingRef = ref(db, 'currentRace/horses');
+onValue(racingRef, (snap) => {
+  const horses = snap.val();
+  if (!horses || !Array.isArray(horses) || horses.length === 0) {
+    grid.innerHTML = `<div class="waiting"><span class="icon">⏳</span>Venter på at løpet starter...</div>`;
+    statusMsg.textContent = 'Intet løp pågår';
+    return;
+  }
+  currentHorses = horses;
+  statusMsg.textContent = 'Velg din hest!';
+  renderHorses();
+});
+
+// Listen for cheer counts
+const cheersRef = ref(db, 'currentRace/cheers');
+onValue(cheersRef, (snap) => {
+  cheerCounts = snap.val() || {};
+  updateCounts();
+});
+
+function renderHorses() {
+  grid.innerHTML = '';
+  currentHorses.forEach((h, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'horse-btn' + (myCheer === i ? ' cheered' : '');
+    btn.id = 'hbtn-' + i;
+
+    const count = cheerCounts[i] || 0;
+    const bubbleBg = `radial-gradient(circle at 40% 40%, ${h.colorHex}cc, ${h.colorHex}44)`;
+
+    btn.innerHTML = `
+      <div class="hb-bubble" style="background:${bubbleBg};border-color:${h.colorHex};">
+        <span>${h.emoji}</span>
+      </div>
+      <div class="hb-info">
+        <span class="hb-name">${h.name}</span>
+        <span class="hb-ticket">${h.ticket}</span>
+      </div>
+      <div class="hb-cheers ${count > 0 ? 'active' : ''}" id="hcount-${i}">
+        ${count > 0 ? '🔥 ' + count : ''}
+      </div>`;
+
+    btn.addEventListener('click', () => cheer(i, btn));
+    grid.appendChild(btn);
+  });
+  updateAlreadyCheered();
+}
+
+function updateCounts() {
+  currentHorses.forEach((h, i) => {
+    const el = document.getElementById('hcount-' + i);
+    if (!el) return;
+    const count = cheerCounts[i] || 0;
+    el.textContent = count > 0 ? '🔥 ' + count : '';
+    el.className = 'hb-cheers' + (count > 0 ? ' active' : '');
+  });
+}
+
+function updateAlreadyCheered() {
+  if (myCheer !== null && currentHorses[myCheer]) {
+    alreadyCheered.style.display = 'block';
+    myHorseName.textContent = currentHorses[myCheer].name;
+  } else {
+    alreadyCheered.style.display = 'none';
+  }
+}
+
+async function cheer(idx, btn) {
+  // Remove previous cheer if switching
+  if (myCheer !== null && myCheer !== idx) {
+    const prevRef = ref(db, `currentRace/cheers/${myCheer}`);
+    await runTransaction(prevRef, (val) => Math.max(0, (val || 0) - 1));
+    document.getElementById('hbtn-' + myCheer)?.classList.remove('cheered');
+  }
+
+  if (myCheer === idx) return; // already cheering this one, do nothing
+
+  myCheer = idx;
+  btn.classList.add('cheered');
+
+  // Increment cheer count
+  const cheerRef = ref(db, `currentRace/cheers/${idx}`);
+  await runTransaction(cheerRef, (val) => (val || 0) + 1);
+
+  // Send a cheer boost event
+  const boostRef = ref(db, `currentRace/boostQueue/${Date.now()}`);
+  await set(boostRef, { horseIdx: idx, ts: Date.now() });
+
+  updateAlreadyCheered();
+  spawnPop(btn);
+  statusMsg.textContent = '🔥 HEIER PÅ ' + currentHorses[idx].name.toUpperCase() + '!';
+}
+
+function spawnPop(btn) {
+  const rect = btn.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'cheer-pop';
+  pop.textContent = ['🎉','🔥','⚡','💪','🏆'][Math.floor(Math.random()*5)];
+  pop.style.left = (rect.left + rect.width/2 - 20) + 'px';
+  pop.style.top = (rect.top + rect.height/2) + 'px';
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 1100);
+}
+</script>
+</body>
+</html>

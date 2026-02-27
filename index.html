@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏇 Vinlotteri – Hesteveddeløp</title>
+<script type="module">
+// Firebase loaded as module – see bottom of file
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,700&display=swap');
+:root { --gold:#FFD700; --gold-dark:#b8960a; --cream:#FFF8E7; --dark:#1a0f00; }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(--cream);min-height:100vh;height:100vh;}
+.view{display:none;height:100vh;}
+.view.active{display:flex;flex-direction:column;height:100vh;}
+
+/* SETUP */
+#setup-view{background:linear-gradient(160deg,#1a0f00 0%,#2d1a00 50%,#1a0f00 100%);padding:40px;align-items:center;overflow-y:auto;height:100vh;}
+.setup-header{text-align:center;margin-bottom:32px;}
+.setup-header h1{font-family:'Bebas Neue',cursive;font-size:clamp(3rem,6vw,5rem);color:var(--gold);letter-spacing:4px;text-shadow:0 0 30px rgba(255,215,0,.4);line-height:1;}
+.setup-header p{font-size:1.1rem;color:#b89860;letter-spacing:2px;text-transform:uppercase;margin-top:6px;}
+.setup-card{background:rgba(255,248,231,.05);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:28px;width:100%;max-width:920px;margin-bottom:20px;}
+.setup-card h2{font-family:'Bebas Neue',cursive;font-size:1.7rem;color:var(--gold);letter-spacing:3px;margin-bottom:16px;border-bottom:1px solid rgba(255,215,0,.2);padding-bottom:10px;}
+.block-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;margin-bottom:14px;}
+.block-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:7px;}
+.block-label{font-size:.8rem;color:#b89860;text-transform:uppercase;letter-spacing:1px;}
+.block-color-dot{width:18px;height:18px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle;border:2px solid rgba(255,255,255,.3);}
+.block-item select,.block-item input[type=number]{background:rgba(0,0,0,.4);border:1px solid rgba(255,215,0,.3);color:var(--cream);padding:5px 9px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:1rem;width:100%;}
+.block-item input[type=checkbox]{width:auto;cursor:pointer;accent-color:var(--gold);}
+.add-block-btn,.add-wine-btn{background:transparent;border:1px dashed rgba(255,215,0,.4);color:var(--gold);padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;letter-spacing:2px;text-transform:uppercase;transition:all .2s;}
+.add-block-btn:hover,.add-wine-btn:hover{background:rgba(255,215,0,.1);border-color:var(--gold);}
+.add-wine-btn{margin-top:8px;}
+.wine-list{display:flex;flex-direction:column;gap:8px;}
+.wine-item{display:grid;grid-template-columns:36px 1fr auto;gap:8px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:9px 12px;}
+.wine-num{font-family:'Bebas Neue',cursive;font-size:1.3rem;color:var(--gold);text-align:center;}
+.wine-item input{background:rgba(0,0,0,.4);border:1px solid rgba(255,215,0,.2);color:var(--cream);padding:6px 11px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:1rem;width:100%;}
+.wine-item input::placeholder{color:rgba(255,255,255,.3);}
+.remove-btn{background:transparent;border:none;color:rgba(255,100,100,.5);cursor:pointer;font-size:1.1rem;padding:3px 7px;border-radius:4px;transition:color .2s;}
+.remove-btn:hover{color:#ff6060;}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.setting-item{display:flex;flex-direction:column;gap:5px;}
+.setting-item label{font-size:.8rem;color:#b89860;text-transform:uppercase;letter-spacing:1px;}
+.setting-item input[type=range]{accent-color:var(--gold);width:100%;cursor:pointer;}
+.setting-val{font-family:'Bebas Neue',cursive;font-size:1.2rem;color:var(--gold);}
+.start-btn{background:linear-gradient(135deg,var(--gold) 0%,var(--gold-dark) 100%);color:var(--dark);border:none;padding:16px 56px;font-family:'Bebas Neue',cursive;font-size:1.9rem;letter-spacing:4px;border-radius:10px;cursor:pointer;transition:all .2s;box-shadow:0 4px 30px rgba(255,215,0,.3);}
+.start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(255,215,0,.5);}
+
+/* RACE */
+#race-view{background:#091505;position:relative;overflow:hidden;transition:background .1s;}
+#race-view.chaos-flash{background:#2a0505!important;}
+.race-header{background:rgba(0,0,0,.75);padding:5px 16px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:10;flex-shrink:0;gap:10px;}
+.race-title{font-family:'Bebas Neue',cursive;font-size:1rem;color:var(--gold);letter-spacing:3px;white-space:nowrap;}
+.race-counter{font-family:'Bebas Neue',cursive;font-size:.9rem;color:rgba(255,215,0,.6);letter-spacing:2px;white-space:nowrap;}
+.wine-spotlight{text-align:center;flex:1;padding:0 8px;}
+.wine-spotlight-label{display:none;}
+.wine-spotlight-name{font-family:'Bebas Neue',cursive;font-size:clamp(.95rem,1.8vw,1.4rem);color:var(--gold);letter-spacing:2px;}
+.race-main{display:flex;flex:1;overflow:hidden;position:relative;min-height:0;}
+.track-container{flex:1;position:relative;display:flex;flex-direction:column;justify-content:center;padding:8px 0;min-width:0;}
+.track-bg{position:absolute;inset:0;background:linear-gradient(180deg,#173010 0%,#28581a 15%,#367022 25%,#367022 75%,#28581a 85%,#173010 100%);}
+.track-lanes{position:relative;z-index:5;display:flex;flex-direction:column;gap:3px;padding:0 14px;}
+.lane{display:flex;align-items:center;height:90px;position:relative;}
+.lane-bg{position:absolute;inset:2px 0;border-radius:4px;opacity:.12;}
+.lane-stripe{position:absolute;top:50%;left:130px;right:18px;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.12) 0px,rgba(255,255,255,.12) 18px,transparent 18px,transparent 36px);transform:translateY(-50%);}
+.lane-label{width:130px;min-width:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;padding:0 8px;gap:3px;}
+.lane-color-badge{width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:1.1rem;color:white;text-shadow:0 1px 3px rgba(0,0,0,.8);box-shadow:0 2px 12px rgba(0,0,0,.5);}
+.lane-ticket{font-family:'Bebas Neue',cursive;font-size:.85rem;color:rgba(255,255,255,.9);text-align:center;letter-spacing:1px;font-weight:700;line-height:1.1;}
+.horse-wrapper{position:absolute;left:130px;top:50%;transform:translateY(-50%);z-index:10;display:flex;align-items:center;gap:4px;pointer-events:none;}
+.horse-emoji{font-size:3rem;filter:drop-shadow(2px 2px 4px rgba(0,0,0,.6));display:block;}
+
+.horse-bubble{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.horse-running .horse-emoji{animation:gallop .28s steps(2) infinite;}
+.horse-reversed .horse-emoji{transform:scaleX(-1);}
+.horse-reversed.horse-running .horse-emoji{animation:gallopReverse .28s steps(2) infinite;}
+@keyframes gallopReverse{0%{transform:scaleX(-1) translateY(0) rotate(2deg);}50%{transform:scaleX(-1) translateY(-4px) rotate(-2deg);}100%{transform:scaleX(-1) translateY(0) rotate(2deg);}}
+
+@keyframes gallop{0%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-4px) rotate(2deg);}100%{transform:translateY(0) rotate(-2deg);}}
+/* horse-ticket-badge removed – ticket now in lane label */
+.horse-status-badge{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.88);border:1px solid rgba(255,200,0,.7);border-radius:12px;padding:2px 8px;font-size:.72rem;white-space:nowrap;font-weight:700;letter-spacing:.5px;pointer-events:none;z-index:20;animation:statusPop .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes statusPop{from{transform:translateX(-50%) scale(.3);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+.event-float{position:fixed;font-size:1.8rem;pointer-events:none;z-index:300;animation:eventFloat 1.4s ease-out forwards;}
+@keyframes eventFloat{0%{transform:translateY(0) scale(0.8);opacity:1;}30%{transform:translateY(-20px) scale(1.2);opacity:1;}100%{transform:translateY(-55px) scale(1);opacity:0;}}
+.finish-line{position:absolute;right:14px;top:0;bottom:0;width:14px;z-index:8;overflow:hidden;}
+.finish-checker{display:grid;grid-template-columns:repeat(2,7px);height:100%;}
+.finish-cell{background:white;}
+.finish-cell:nth-child(4n+1),.finish-cell:nth-child(4n+4){background:black;}
+.wildcard-banner{position:relative;z-index:10;text-align:center;padding:3px 8px;margin:0 14px;border-radius:6px;background:rgba(0,0,0,.4);border:1px solid rgba(255,215,0,.2);display:flex;align-items:center;justify-content:center;gap:8px;font-size:.75rem;letter-spacing:1px;flex-shrink:0;}
+.wildcard-horse-indicator{display:flex;align-items:center;gap:5px;font-family:'Bebas Neue',cursive;font-size:.95rem;letter-spacing:1px;}
+
+/* KAOS-modus banner */
+.chaos-mode-banner{display:none;position:relative;z-index:10;text-align:center;padding:2px;margin:0 14px;border-radius:4px;background:linear-gradient(90deg,#ff0000,#ff6600,#ff0000);background-size:200% 100%;animation:chaosGradient 1s linear infinite;font-family:'Bebas Neue',cursive;letter-spacing:2px;font-size:.75rem;color:white;flex-shrink:0;}
+.chaos-mode-banner.active{display:block;}
+@keyframes chaosGradient{0%{background-position:0% 0%;}100%{background-position:200% 0%;}}
+
+
+/* Screen shake */
+@keyframes shake{0%,100%{transform:translateX(0) translateY(0);}10%{transform:translateX(-8px) translateY(3px);}20%{transform:translateX(8px) translateY(-3px);}30%{transform:translateX(-6px) translateY(5px);}40%{transform:translateX(6px) translateY(-5px);}50%{transform:translateX(-4px) translateY(3px);}60%{transform:translateX(4px) translateY(-3px);}70%{transform:translateX(-3px) translateY(2px);}80%{transform:translateX(3px) translateY(-2px);}90%{transform:translateX(-1px) translateY(1px);}}
+.shaking{animation:shake .5s ease-out;}
+
+/* LIVE FEED */
+.live-feed-panel{width:290px;min-width:290px;background:rgba(0,0,0,.65);border-left:1px solid rgba(255,215,0,.12);display:flex;flex-direction:column;position:relative;z-index:15;overflow:hidden;}
+.feed-header{padding:10px 14px;border-bottom:1px solid rgba(255,215,0,.15);font-family:'Bebas Neue',cursive;font-size:1rem;color:var(--gold);letter-spacing:3px;display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.feed-dot{width:8px;height:8px;border-radius:50%;background:#ff3333;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.feed-scroll{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+.feed-scroll::-webkit-scrollbar{width:4px;}
+.feed-scroll::-webkit-scrollbar-track{background:transparent;}
+.feed-scroll::-webkit-scrollbar-thumb{background:rgba(255,215,0,.2);border-radius:2px;}
+.feed-item{padding:6px 9px;border-radius:6px;font-size:.85rem;line-height:1.35;border-left:3px solid transparent;animation:feedSlide .3s ease-out;background:rgba(255,255,255,.03);flex-shrink:0;}
+@keyframes feedSlide{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+.feed-item.event{border-color:#ff6b35;background:rgba(255,107,53,.09);}
+.feed-item.normal{border-color:rgba(255,215,0,.25);}
+.feed-item.winner{border-color:#ffd700;background:rgba(255,215,0,.1);font-weight:700;}
+.feed-time{font-size:.65rem;color:rgba(255,255,255,.3);margin-bottom:1px;}
+
+.phase-label{text-align:center;padding:2px;position:relative;z-index:10;flex-shrink:0;}
+.phase-label span{display:inline-block;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:var(--gold);font-family:'Bebas Neue',cursive;font-size:.78rem;letter-spacing:2px;padding:2px 10px;border-radius:20px;}
+
+.race-controls{display:flex;justify-content:center;gap:8px;padding:6px 12px;position:relative;z-index:10;background:rgba(0,0,0,.55);flex-shrink:0;flex-wrap:wrap;}
+.btn{font-family:'Bebas Neue',cursive;letter-spacing:2px;font-size:.95rem;padding:6px 18px;border-radius:7px;border:none;cursor:pointer;transition:all .2s;}
+.btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--dark);box-shadow:0 4px 20px rgba(255,215,0,.3);}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 30px rgba(255,215,0,.5);}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn-secondary{background:rgba(255,255,255,.07);color:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.14);}
+.btn-danger{background:rgba(204,34,0,.18);color:#ff6060;border:1px solid rgba(204,34,0,.28);}
+.btn-danger:hover{background:rgba(204,34,0,.32);}
+
+/* OVERLAYS */
+.winner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:2000;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.winner-overlay.show{display:flex;}
+.winner-card{background:linear-gradient(135deg,#1a0f00,#2d1a00);border:2px solid var(--gold);border-radius:20px;padding:44px 56px;text-align:center;max-width:580px;width:90%;box-shadow:0 0 80px rgba(255,215,0,.3);animation:winnerPop .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes winnerPop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.winner-trophy{font-size:3.6rem;margin-bottom:8px;}
+.winner-title{font-family:'Bebas Neue',cursive;font-size:1.1rem;letter-spacing:4px;color:var(--gold);margin-bottom:6px;opacity:.7;}
+.winner-wine{font-family:'Bebas Neue',cursive;font-size:clamp(1.8rem,4vw,2.8rem);color:var(--cream);margin-bottom:18px;letter-spacing:2px;}
+.winner-ticket{display:inline-block;background:var(--gold);color:var(--dark);font-family:'Bebas Neue',cursive;font-size:2.3rem;padding:10px 28px;border-radius:10px;letter-spacing:4px;margin-bottom:14px;box-shadow:0 4px 20px rgba(255,215,0,.4);}
+.winner-horse-info{color:rgba(255,255,255,.45);font-size:.95rem;letter-spacing:2px;margin-bottom:26px;}
+.draw-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2000;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.draw-overlay.show{display:flex;}
+.draw-spinner{font-size:4.5rem;animation:spin .25s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.draw-text{font-family:'Bebas Neue',cursive;font-size:1.9rem;color:var(--gold);letter-spacing:4px;margin-top:18px;}
+.confetti{position:fixed;top:-10px;opacity:0;animation:confettiFall linear forwards;pointer-events:none;z-index:200;}
+@keyframes confettiFall{0%{top:-10px;opacity:1;transform:rotate(0)}100%{top:110vh;opacity:.4;transform:rotate(720deg)}}
+.scoreboard{position:fixed;right:0;top:0;bottom:0;width:220px;background:rgba(0,0,0,.8);border-left:1px solid rgba(255,215,0,.15);z-index:50;padding:14px 11px;overflow-y:auto;transform:translateX(100%);transition:transform .3s;}
+.scoreboard.open{transform:translateX(0);}
+.scoreboard h3{font-family:'Bebas Neue',cursive;color:var(--gold);font-size:1.1rem;letter-spacing:3px;margin-bottom:10px;border-bottom:1px solid rgba(255,215,0,.2);padding-bottom:7px;}
+.sb-item{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.82rem;gap:8px;}
+.sb-wine{color:rgba(255,255,255,.55);flex:1;}
+.sb-ticket{color:var(--gold);font-weight:700;font-size:.87rem;}
+.info-bar{display:none;}
+.info-bar strong{color:rgba(255,255,255,.65);}
+
+
+/* EVENT VISUAL OVERLAYS */
+/* Event ticker – slim pill at bottom of track, slides in from right */
+#event-banner-stack{position:fixed;right:295px;bottom:60px;z-index:400;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.event-banner{background:rgba(0,0,0,.88);border-left:4px solid;border-radius:8px;padding:7px 14px;white-space:nowrap;display:flex;align-items:center;gap:8px;transform:translateX(120%);opacity:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1), opacity .25s ease;}
+.event-banner.show{transform:translateX(0);opacity:1;}
+.event-banner.hide{transform:translateX(40px);opacity:0;transition:transform .25s ease-in, opacity .25s ease-in;}
+.event-banner-emoji{font-size:1.5rem;display:block;flex-shrink:0;}
+.event-banner-text{font-family:'Bebas Neue',cursive;font-size:1.1rem;letter-spacing:2px;display:block;}
+
+/* LANE HIGHLIGHT on event */
+.lane.event-active{animation:laneFlash .6s ease-out;}
+@keyframes laneFlash{0%{background:rgba(255,200,0,.0);}30%{background:rgba(255,200,0,.25);}100%{background:rgba(255,200,0,.0);}}
+.lane.event-bad{animation:laneBad .6s ease-out;}
+@keyframes laneBad{0%{background:rgba(255,0,0,.0);}30%{background:rgba(255,0,0,.3);}100%{background:rgba(255,0,0,.0);}}
+.lane.event-boost{animation:laneBoost .6s ease-out;}
+@keyframes laneBoost{0%{background:rgba(0,255,0,.0);}30%{background:rgba(0,255,0,.25);}100%{background:rgba(0,255,0,.0);}}
+
+/* BEAR ANIMATION */
+.bear-invader{position:fixed;font-size:3.5rem;z-index:250;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.8));}
+
+/* Bigger event float – merged into .event-float above */
+
+
+
+/* Persistent horse visual effects */
+.horse-bubble.effect-bad{animation:horseBad .5s ease-in-out infinite alternate;filter:brightness(0.7) sepia(1) hue-rotate(320deg);}
+.horse-bubble.effect-boost{animation:horseBoost .3s ease-in-out infinite alternate;filter:brightness(1.4) saturate(1.8);}
+.horse-bubble.effect-drunk{animation:horseDrunk 0.6s ease-in-out infinite;filter:hue-rotate(30deg) saturate(1.5);}
+.horse-bubble.effect-frozen{filter:brightness(0.6) saturate(0) hue-rotate(180deg);}
+.horse-bubble.effect-invisible{opacity:0.15;filter:blur(2px);}
+.horse-bubble.effect-phone{animation:horsePhone .8s ease-in-out infinite;filter:hue-rotate(200deg) brightness(0.8);}
+.horse-bubble.effect-chase{animation:horseChase .25s ease-in-out infinite alternate;filter:brightness(0.6) sepia(1) hue-rotate(0deg);}
+@keyframes horseBad{from{transform:scale(1) rotate(-3deg);}to{transform:scale(0.95) rotate(3deg);}}
+@keyframes horseBoost{from{transform:scale(1) rotate(-1deg);}to{transform:scale(1.08) rotate(1deg);}}
+@keyframes horseDrunk{0%{transform:rotate(-8deg);}25%{transform:rotate(8deg) translateX(3px);}50%{transform:rotate(-5deg);}75%{transform:rotate(6deg) translateX(-3px);}100%{transform:rotate(-8deg);}}
+@keyframes horsePhone{0%{transform:rotate(0) scale(1);}40%{transform:rotate(-15deg) scale(0.95);}60%{transform:rotate(-15deg) scale(0.95);}100%{transform:rotate(0) scale(1);}}
+@keyframes horseChase{from{transform:scale(1.05) translateX(-2px);}to{transform:scale(0.95) translateX(2px);}}
+
+/* CHAOS FLASH OVERLAY */
+#chaos-overlay{position:fixed;inset:0;pointer-events:none;z-index:290;opacity:0;transition:opacity .08s;}
+
+/* ── LODDTREKNING OVERLAY ── */
+#draw-tickets-overlay{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:2000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;}
+#draw-tickets-overlay.show{display:flex;}
+.dt-title{font-family:'Bebas Neue',cursive;font-size:2.4rem;color:var(--gold);letter-spacing:6px;text-shadow:0 0 30px rgba(255,215,0,.5);}
+.dt-subtitle{font-family:'Bebas Neue',cursive;font-size:1rem;color:rgba(255,215,0,.5);letter-spacing:4px;margin-top:-18px;}
+.dt-horses{display:flex;flex-wrap:wrap;justify-content:center;gap:20px;max-width:900px;}
+.dt-horse-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.15);border-radius:16px;padding:18px 24px;text-align:center;min-width:140px;transition:border-color .3s,box-shadow .3s;}
+.dt-horse-card.drawing{border-color:var(--gold);box-shadow:0 0 24px rgba(255,215,0,.4);animation:dtPulse .4s ease-in-out infinite alternate;}
+.dt-horse-card.done{border-color:var(--gold);box-shadow:0 0 16px rgba(255,215,0,.3);}
+.dt-horse-card.wildcard-card{border-color:rgba(200,100,255,.5);}
+.dt-horse-card.wildcard-card.done{border-color:#cc66ff;box-shadow:0 0 16px rgba(200,100,255,.4);}
+@keyframes dtPulse{from{transform:scale(1);}to{transform:scale(1.04);}}
+.dt-horse-emoji{font-size:3rem;display:block;margin-bottom:6px;}
+.dt-horse-name{font-family:'Bebas Neue',cursive;font-size:1.1rem;letter-spacing:2px;color:rgba(255,255,255,.8);display:block;}
+.dt-slot{font-family:'Bebas Neue',cursive;font-size:1.5rem;letter-spacing:2px;min-height:2rem;margin-top:8px;display:block;color:rgba(255,255,255,.3);}
+.dt-slot.rolling{color:var(--gold);animation:dtRoll .08s steps(1) infinite;}
+.dt-slot.landed{color:white;font-size:1.7rem;animation:dtLand .4s cubic-bezier(.34,1.56,.64,1);}
+@keyframes dtRoll{0%{opacity:.6;}100%{opacity:1;}}
+@keyframes dtLand{0%{transform:scale(1.5);color:var(--gold);}100%{transform:scale(1);color:white;}}
+.dt-start-btn{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--dark);border:none;padding:14px 48px;font-family:'Bebas Neue',cursive;font-size:1.7rem;letter-spacing:4px;border-radius:10px;cursor:pointer;transition:all .2s;box-shadow:0 4px 30px rgba(255,215,0,.3);opacity:0;pointer-events:none;transform:translateY(10px);}
+.dt-start-btn.ready{opacity:1;pointer-events:all;transform:translateY(0);transition:opacity .4s ease, transform .4s ease, background .15s;}
+.dt-start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(255,215,0,.5);}
+
+
+/* QR overlay */
+#qr-overlay{position:fixed;bottom:70px;left:16px;z-index:300;background:white;border-radius:12px;padding:10px;box-shadow:0 4px 24px rgba(0,0,0,.6);display:none;flex-direction:column;align-items:center;gap:6px;}
+#qr-overlay.show{display:flex;}
+#qr-overlay canvas{border-radius:6px;}
+#qr-label{font-family:'Bebas Neue',cursive;font-size:.85rem;color:#333;letter-spacing:2px;}
+#cheer-count-bar{position:fixed;bottom:56px;left:0;right:295px;height:4px;display:flex;z-index:50;}
+.cheer-bar-segment{flex:0 0 auto;height:100%;transition:flex-basis .5s ease;}
+#cheer-toast{position:fixed;top:44px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:500;background:rgba(255,215,0,.95);color:#1a0f00;font-family:'Bebas Neue',cursive;font-size:1.2rem;letter-spacing:3px;padding:8px 24px;border-radius:24px;pointer-events:none;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
+#cheer-toast.show{transform:translateX(-50%) translateY(0);}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div id="chaos-overlay"></div>
+<div id="event-banner-stack"></div>
+
+<!-- SETUP VIEW -->
+<div id="setup-view" class="view active">
+  <div class="setup-header">
+    <h1>🏇 Vinlotteri</h1>
+    <p>Hesteveddeløp – Oppsett</p>
+  </div>
+  <div class="setup-card">
+    <h2>⚙️ Innstillinger</h2>
+    <div class="settings-grid">
+      <div class="setting-item">
+        <label>Løpshastighet</label>
+        <input type="range" id="set-speed" min="1" max="5" step="1" value="3" oninput="updateSettingLabel('speed',this.value)">
+        <span class="setting-val" id="lbl-speed">Normal</span>
+      </div>
+      <div class="setting-item">
+        <label>Løpsvarighet (sekunder)</label>
+        <input type="range" id="set-duration" min="10" max="120" step="5" value="40" oninput="updateSettingLabel('duration',this.value)">
+        <span class="setting-val" id="lbl-duration">40s</span>
+      </div>
+      <div class="setting-item">
+        <label>Kaos-nivå 🌪</label>
+        <input type="range" id="set-chaos" min="0" max="3" step="1" value="2" oninput="updateSettingLabel('chaos',this.value)">
+        <span class="setting-val" id="lbl-chaos">Medium</span>
+      </div>
+      <div class="setting-item">
+        <label>Individuelle hester</label>
+        <input type="range" id="set-horses" min="2" max="6" step="1" value="4" oninput="updateSettingLabel('horses',this.value)">
+        <span class="setting-val" id="lbl-horses">4</span>
+      </div>
+      <div class="setting-item">
+        <label>🔊 Hovslag</label>
+        <input type="range" id="set-vol-hooves" min="0" max="100" step="10" value="70" oninput="updateSettingLabel('vol-hooves',this.value)">
+        <span class="setting-val" id="lbl-vol-hooves">70%</span>
+      </div>
+      <div class="setting-item">
+        <label>📣 Publikumsjubel</label>
+        <input type="range" id="set-vol-cheer" min="0" max="100" step="10" value="80" oninput="updateSettingLabel('vol-cheer',this.value)">
+        <span class="setting-val" id="lbl-vol-cheer">80%</span>
+      </div>
+      <div class="setting-item">
+        <label>🎺 Fanfare &amp; effekter</label>
+        <input type="range" id="set-vol-fx" min="0" max="100" step="10" value="80" oninput="updateSettingLabel('vol-fx',this.value)">
+        <span class="setting-val" id="lbl-vol-fx">80%</span>
+      </div>
+      <div class="setting-item">
+        <label>🎙️ Kommentator</label>
+        <input type="range" id="set-vol-voice" min="0" max="100" step="10" value="0" oninput="updateSettingLabel('vol-voice',this.value)">
+        <span class="setting-val" id="lbl-vol-voice">80%</span>
+      </div>
+    </div>
+  </div>
+  <div class="setup-card">
+    <h2>🎫 Loddblokker</h2>
+    <div class="block-grid" id="block-grid"></div>
+    <button class="add-block-btn" onclick="addBlock()">+ Legg til blokk</button>
+  </div>
+  <div class="setup-card">
+    <h2>🍷 Viner <span style="font-size:.9rem;font-family:'Barlow Condensed',sans-serif;color:#b89860;font-weight:400">(første trekkes først – legg billigste øverst)</span></h2>
+    <div class="wine-list" id="wine-list"></div>
+    <button class="add-wine-btn" onclick="addWine()">+ Legg til vin</button>
+  </div>
+  <button class="start-btn" onclick="startShow()">START SHOW 🏁</button>
+</div>
+
+<!-- RACE VIEW -->
+<div id="race-view" class="view">
+  <div class="race-header">
+    <div class="race-title">🏇 Vinlotteri</div>
+    <div class="wine-spotlight">
+      <div class="wine-spotlight-label">🍷 Premie dette løpet</div>
+      <div class="wine-spotlight-name" id="current-wine-name">Vin 1</div>
+    </div>
+    <div class="race-counter" id="race-counter">Løp 1 av 14</div>
+  </div>
+  <div class="phase-label"><span id="phase-text">Gjør deg klar...</span></div>
+  <div class="race-main">
+    <div class="track-container">
+      <div class="track-bg"></div>
+      <div class="finish-line"><div class="finish-checker" id="finish-checker"></div></div>
+      <div class="track-lanes" id="track-lanes"></div>
+    </div>
+    <div class="live-feed-panel">
+      <div class="feed-header"><div class="feed-dot"></div> DIREKTERAPPORT</div>
+      <div class="feed-scroll" id="feed-scroll"></div>
+    </div>
+  </div>
+  <div class="info-bar">
+    <span>Individuelle hester: <strong>Spesifikke loddnumre</strong></span>
+    <span>Wildcard: <strong id="info-wildcard-desc">hel farge</strong></span>
+  </div>
+  <div id="qr-overlay">
+    <div id="qr-code"></div>
+    <div id="qr-label">📱 SKANN FOR Å HEIE</div>
+  </div>
+  <div id="cheer-count-bar"></div>
+  <div id="cheer-toast">🔥 HEIAROP!</div>
+  <div class="race-controls">
+    <button class="btn btn-primary" id="btn-start-race" onclick="startRace()">🏁 START LØP</button>
+    <button class="btn btn-secondary" id="btn-next-race" onclick="nextRace()" style="display:none">Neste løp →</button>
+    <button class="btn btn-danger" onclick="goToSetup()">⚙ Oppsett</button>
+    <button class="btn btn-secondary" onclick="toggleScoreboard()">🏆 Resultater</button>
+    <button class="btn btn-secondary" onclick="toggleQR()" id="btn-qr">📱 QR</button>
+  </div>
+</div>
+
+<!-- Winner overlay -->
+<div class="winner-overlay" id="winner-overlay">
+  <div class="winner-card">
+    <div class="winner-trophy" id="winner-trophy">🏆</div>
+    <div class="winner-title">VINNEREN ER</div>
+    <div class="winner-wine" id="winner-wine-name"></div>
+    <div class="winner-ticket" id="winner-ticket-display"></div>
+    <div class="winner-horse-info" id="winner-horse-info"></div>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="btn btn-primary" onclick="closeWinner()">Fortsett →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Draw overlay -->
+<div class="draw-overlay" id="draw-overlay">
+  <div class="draw-spinner">🎰</div>
+  <div class="draw-text" id="draw-text">Trekker...</div>
+</div>
+
+<!-- Scoreboard -->
+<div class="scoreboard" id="scoreboard">
+  <h3>🏆 Resultater</h3>
+  <div id="sb-results"></div>
+</div>
+
+<script type="module">
+// ── Firebase ──
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, remove, onValue, onChildAdded, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const _fbConfig = {
+  apiKey: "AIzaSyBf2y5UvDRCcw3tlLiX6D2-Kpm5QygyXN4",
+  authDomain: "eg-games-708e8.firebaseapp.com",
+  databaseURL: "https://eg-games-708e8-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "eg-games-708e8",
+  storageBucket: "eg-games-708e8.firebasestorage.app",
+  messagingSenderId: "706613204445",
+  appId: "1:706613204445:web:3f754ac728cd46f0281234"
+};
+const _fbApp = initializeApp(_fbConfig);
+const _db = getDatabase(_fbApp);
+let _boostListener = null;
+let _cheerListener = null;
+let _cheerCounts = {};
+
+// Publish current horses to Firebase so heie.html can read them
+function fbPublishHorses(horses){
+  const data = horses.map(h=>({
+    name: h.name,
+    emoji: h.emoji,
+    ticket: h.ticket,
+    colorHex: h.colorObj.hex
+  }));
+  set(ref(_db,'currentRace/horses'), data);
+  set(ref(_db,'currentRace/cheers'), null);
+  set(ref(_db,'currentRace/boostQueue'), null);
+  _cheerCounts = {};
+  updateCheerBar();
+}
+
+// Clear Firebase when race ends
+function fbClearRace(){
+  set(ref(_db,'currentRace'), null);
+  _cheerCounts = {};
+  updateCheerBar();
+}
+
+// Listen for boost events from heie.html
+function fbListenBoosts(){
+  if(_boostListener){ off(ref(_db,'currentRace/boostQueue'), 'child_added', _boostListener); }
+  _boostListener = onChildAdded(ref(_db,'currentRace/boostQueue'), (snap)=>{
+    const data = snap.val();
+    if(!data) return;
+    const h = state.horses[data.horseIdx];
+    if(h && state.racePhase==='running'){
+      h.speedMult = Math.min((h.speedMult||1) + 0.18, 3.5);
+      setTimeout(()=>{ if(h.speedMult>1.0) h.speedMult=Math.max(1.0,h.speedMult-0.15); },1800);
+      showCheerToast(h.name);
+      flashLane(data.horseIdx,'boost');
+      spawnFloater(data.horseIdx,'🔥');
+    }
+    // Remove processed boost
+    remove(snap.ref);
+  });
+
+  // Listen for cheer counts (display)
+  if(_cheerListener){ off(ref(_db,'currentRace/cheers'), 'value', _cheerListener); }
+  _cheerListener = onValue(ref(_db,'currentRace/cheers'), (snap)=>{
+    _cheerCounts = snap.val() || {};
+    updateCheerBar();
+  });
+}
+
+function showCheerToast(horseName){
+  const t = document.getElementById('cheer-toast');
+  t.textContent = '🔥 ' + horseName.toUpperCase() + ' FÅR STØTTE!';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function updateCheerBar(){
+  const bar = document.getElementById('cheer-count-bar');
+  if(!bar || !state.horses.length) return;
+  const total = Object.values(_cheerCounts).reduce((s,v)=>s+(v||0),0)||1;
+  bar.innerHTML = state.horses.map((h,i)=>{
+    const count = _cheerCounts[i]||0;
+    const pct = (count/total*100).toFixed(1);
+    return `<div class="cheer-bar-segment" style="flex-basis:${pct}%;background:${h.colorObj.hex};opacity:.8;" title="${h.name}: ${count}"></div>`;
+  }).join('');
+}
+
+// QR code
+let _qrGenerated = false;
+function toggleQR(){
+  const ov = document.getElementById('qr-overlay');
+  ov.classList.toggle('show');
+  if(ov.classList.contains('show') && !_qrGenerated){
+    _qrGenerated = true;
+    const heieUrl = window.location.href.replace('index.html','').replace(/\/$/, '') + '/heie.html';
+    new QRCode(document.getElementById('qr-code'), {
+      text: heieUrl, width:160, height:160,
+      colorDark:'#000', colorLight:'#fff', correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+}
+
+const COLORS=[{name:'Hvit',hex:'#f0f0f0',textColor:'#333'},{name:'Grønn',hex:'#3aaa35',textColor:'#fff'},{name:'Gul',hex:'#f0c020',textColor:'#333'},{name:'Blå',hex:'#2060cc',textColor:'#fff'},{name:'Rosa',hex:'#e060a0',textColor:'#fff'}];
+const LETTERS=['S','M','L','R'];
+const SPEED_LABELS=['','Sakte','Rolig','Normal','Rask','Eksplosiv'];
+const CHAOS_LABELS=['Av','Lite','Medium','Galskap 🌪️'];
+
+// ──────────────────────────────────────────
+// ENKELT-HEST EVENTS
+// ──────────────────────────────────────────
+const CHAOS_EVENTS=[
+  {id:'sleep',emoji:'😴',text:(h)=>`😴 ${h} SOVNER midt i løpet og stopper opp!`,apply:(horse)=>{horse.speedMult=0;horse.status='😴 Sover';setHorseEffect(horse,'effect-frozen');spawnFloater(horse.idx,'😴');flashLane(horse.idx,'bad');spawnEventBanner('😴','SOVNER!','#aaaaff');say(pickLine(COMMENTARY.sleep(horse.name)));const t=3200+Math.random()*2000;setTimeout(()=>{horse.speedMult=1.3;horse.status=null;clearHorseEffect(horse);addFeed(`${horse.name} vakner brått og spurter!`,'normal');},t);},weight:10},
+  {id:'bear',emoji:'🐻',text:(h)=>`🐻 EN BJØRN stormer inn på banen og jager ${h} bakover!`,apply:(horse)=>{
+    horse.status='😱 Bjørn kommer!';
+    spawnEventBanner('🐻','BJØRN PÅ BANEN!','#ff6600');
+    say(pickLine(COMMENTARY.bear(horse.name)));
+    spawnBearInvader(horse.idx,()=>{
+      horse.speedMult=-0.8;horse.status='🐻 Jages av bjørn!';setHorseEffect(horse,'effect-chase');
+      setTimeout(()=>{horse.speedMult=0.9;horse.status=null;clearHorseEffect(horse);},2800);
+    });
+  },weight:6},
+  {id:'turbo',emoji:'🚀',text:(h)=>`🚀 ${h} finner ett ekstra gir og eksploderer fremover!`,apply:(horse)=>{horse.speedMult=2.9;horse.status='🚀 TURBO!';setHorseEffect(horse,'effect-boost');spawnFloater(horse.idx,'🚀');flashLane(horse.idx,'boost');spawnEventBanner('🚀','TURBO!','#00ff88');say(pickLine(COMMENTARY.turbo(horse.name)));setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},1800);},weight:10},
+  {id:'bee',emoji:'🐝',text:(h)=>`🐝 En bie flyr rett i ansiktet på ${h}! Totalt kaos!`,apply:(horse)=>{horse.speedMult=-1.6;horse.status='🐝 BIE I ANSIKTET';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'🐝');say(pickLine(COMMENTARY.bee(horse.name)));setTimeout(()=>{horse.speedMult=0.9;horse.status=null;clearHorseEffect(horse);},2200);},weight:8},
+  {id:'stumble',emoji:'🪨',text:(h)=>`🪨 ${h} snubler over en stein og mister all fart!`,apply:(horse)=>{horse.speedMult=0.15;horse.status='🪨 Snublet';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'🪨');setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2000);},weight:9},
+  {id:'nitro',emoji:'⚡️',text:(h)=>`⚡️ En tilskuer kaster en energidrikk til ${h} – drikkes i fart!`,apply:(horse)=>{horse.speedMult=2.3;horse.status='⚡️ Energidrikk!';setHorseEffect(horse,'effect-boost');spawnFloater(horse.idx,'⚡️');flashLane(horse.idx,'boost');spawnEventBanner('⚡️','ENERGIDRIKK!','#ffff00');say(pickLine(COMMENTARY.nitro(horse.name)));setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2500);},weight:9},
+  {id:'alien',emoji:'👽',text:(h)=>`👽 EN UFO dukker opp og løfter ${h} opp med lysstråle!`,apply:(horse)=>{horse.speedMult=0;horse.status='👽 ABDUCTED!';setHorseEffect(horse,'effect-invisible');spawnFloater(horse.idx,'👽');say(pickLine(COMMENTARY.alien(horse.name)));setTimeout(()=>{horse.speedMult=1.7;horse.status=null;clearHorseEffect(horse);addFeed(`${horse.name} er tilbake fra UFOen – med ny kraft!`,'normal');},3600);},weight:5},
+  {id:'banana',emoji:'🍌',text:(h)=>`🍌 ${h} glir på et bananskall og sklir bakover!`,apply:(horse)=>{horse.speedMult=-1.3;horse.status='🍌 Glir!';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'🍌');setTimeout(()=>{horse.speedMult=0.9;horse.status=null;clearHorseEffect(horse);},1900);},weight:9},
+  {id:'cow',emoji:'🐄',text:(h)=>`🐄 En ku vandrer inn og blokkerer ${h} fullstendig!`,apply:(horse)=>{horse.speedMult=0;horse.status='🐄 Ku blokkerer!';setHorseEffect(horse,'effect-frozen');spawnFloater(horse.idx,'🐄');say(pickLine(COMMENTARY.cow(horse.name)));const d=3500+Math.random()*1500;setTimeout(()=>{horse.speedMult=1.1;horse.status=null;clearHorseEffect(horse);addFeed(`Kua er endelig fjernet – ${horse.name} løper videre!`,'normal');},d);},weight:6},
+  {id:'eagle',emoji:'🦅',text:(h)=>`🦅 En ørn prøver å løfte ${h} – for tung! Spurter av skrekk!`,apply:(horse)=>{horse.speedMult=2.1;horse.status='🦅 Ørne-panikk!';setHorseEffect(horse,'effect-boost');spawnFloater(horse.idx,'🦅');setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2300);},weight:7},
+  {id:'phone',emoji:'📱',text:(h)=>`📱 ${h} stopper midt i løpet for å sjekke telefonen!`,apply:(horse)=>{horse.speedMult=0;horse.status='📱 På TikTok';setHorseEffect(horse,'effect-phone');spawnFloater(horse.idx,'📱');say(pickLine(COMMENTARY.phone(horse.name)));setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2800);},weight:8},
+  {id:'rocket',emoji:'👟',text:(h)=>`👟 ${h} bytter til rakettsåler – ulovlig, men INGEN stopper dem!`,apply:(horse)=>{horse.speedMult=3.1;horse.status='👟 RAKETTSÅLER!';spawnFloater(horse.idx,'🔥');flashLane(horse.idx,'boost');spawnEventBanner('👟','RAKETTSÅLER!','#ff8800');setTimeout(()=>{horse.speedMult=1.0;horse.status=null;},1600);},weight:5},
+  {id:'wine',emoji:'🍷',text:(h)=>`🍷 ${h} finner premievinen og tar en stor slurk – litt ustø nå!`,apply:(horse)=>{horse.speedMult=0.4;horse.status='🍷 Litt full';setHorseEffect(horse,'effect-drunk');spawnFloater(horse.idx,'🍷');say(pickLine(COMMENTARY.wine(horse.name)));setTimeout(()=>{horse.speedMult=0.9;horse.status=null;clearHorseEffect(horse);},3200);},weight:7},
+  {id:'cheer',emoji:'📣',text:(h)=>`📣 Hele tribunen roper på ${h} – de blir totalt oppildnet!`,apply:(horse)=>{horse.speedMult=2.0;horse.status='📣 Folkehelt!';setHorseEffect(horse,'effect-boost');spawnFloater(horse.idx,'🔥');say(pickLine(COMMENTARY.cheer(horse.name)));setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2500);},weight:10},
+  {id:'mud',emoji:'🪣',text:(h)=>`🪣 ${h} løper inn i et gjørmehull og sitter helt fast!`,apply:(horse)=>{horse.speedMult=0.08;horse.status='🪣 Sitter i gjørma';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'💩');const d=2800+Math.random()*1500;setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);addFeed(`${horse.name} er endelig løs fra gjørma!`,'normal');},d);},weight:8},
+  {id:'tornado',emoji:'🌪️',text:(h)=>`🌪️ En mini-tornado tar tak i ${h} og bærer dem bakover!`,apply:(horse)=>{horse.speedMult=-2.1;horse.status='🌪️ Tornado!';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'🌪️');flashLane(horse.idx,'bad');spawnEventBanner('🌪️','TORNADO!','#88aaff');say(pickLine(COMMENTARY.tornado(horse.name)));setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},1600);},weight:6},
+  {id:'ghost',emoji:'👻',text:(h)=>`👻 Et spøkelse skremmer ${h} – de galopperer ukontrollert fremover!`,apply:(horse)=>{horse.speedMult=2.5;horse.status='👻 Skremt!';setHorseEffect(horse,'effect-boost');spawnFloater(horse.idx,'👻');flashLane(horse.idx,'boost');spawnEventBanner('👻','SKREMT!','#ccccff');setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2000);},weight:7},
+  {id:'magnet',emoji:'🧲',text:(h)=>`🧲 En mystisk magnet trekker ${h} bakover mot start!`,apply:(horse)=>{horse.speedMult=-1.8;horse.status='🧲 Magnet!';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'🧲');setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},1800);},weight:6},
+  {id:'meteor',emoji:'☄️',text:(h)=>`☄️ En meteor slår ned rett foran ${h} – total panikk!`,apply:(horse)=>{horse.speedMult=-2.5;horse.status='☄️ METEOR!';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'☄️');screenShake(400);chaosFlash('#ff6600',300);setTimeout(()=>{horse.speedMult=1.5;horse.status=null;clearHorseEffect(horse);},2200);},weight:4},
+  {id:'blackhole',emoji:'🌀',text:(h)=>`🌀 Et sort hull åpner seg under ${h}! De forsvinner i 4 sekunder!`,apply:(horse)=>{const savedPos=state.positions[horse.idx];horse.speedMult=0;horse.status='🌀 Forsvunnet!';setHorseEffect(horse,'effect-invisible');spawnFloater(horse.idx,'🌀');say(pickLine(COMMENTARY.blackhole(horse.name)));setTimeout(()=>{state.positions[horse.idx]=Math.max(0,savedPos-0.08);horse.speedMult=2.0;horse.status='🌀 Tilbake!';clearHorseEffect(horse);addFeed(`${horse.name} dukker opp igjen – men litt bak!`,'event');setTimeout(()=>{horse.speedMult=1.0;horse.status=null;},1500);},4000);},weight:4},
+];
+
+
+function pickWeightedEvent(){
+  const total=CHAOS_EVENTS.reduce((s,e)=>s+e.weight,0);
+  let r=Math.random()*total;
+  for(const e of CHAOS_EVENTS){r-=e.weight;if(r<=0)return e;}
+  return CHAOS_EVENTS[0];
+}
+let state={blocks:[],wines:[],currentRace:0,raceOrder:[],results:[],racePhase:'idle',horses:[],positions:[],winner:-1,eventActive:false,usedTickets:{},settings:{speed:3,duration:40,chaos:2,numHorses:4,volHooves:0.7,volCheer:0.8,volFx:0.8,volVoice:0}};
+
+// ══════════════════════════════════════════════════════
+// AUDIO ENGINE – veddeløp med ekte publikum og hester
+// ══════════════════════════════════════════════════════
+let audioCtx=null;
+let lastCrowdUpdate=0;
+
+function getACtx(){
+  if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// ── Hjelpefunksjon: spill en enkel tone ──
+function playTone(freq,dur,type,vol,delay){
+  type=type||'sine';vol=vol||0.3;delay=delay||0;
+  try{
+    const ctx=getACtx(),osc=ctx.createOscillator(),g=ctx.createGain();
+    osc.connect(g);g.connect(ctx.destination);
+    osc.type=type;osc.frequency.value=freq;
+    g.gain.setValueAtTime(vol*state.settings.volFx,ctx.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+dur);
+    osc.start(ctx.currentTime+delay);osc.stop(ctx.currentTime+delay+dur+.05);
+  }catch(e){}
+}
+
+// ── Starthorn: klassisk veddeløpsfanfare ──
+function playFanfare(){
+  if(state.settings.volFx===0)return;
+  const notes=[[392,0.18],[392,0.18],[392,0.18],[523,0.36],[392,0.18],[523,0.54],[659,0.72]];
+  let t=0;
+  notes.forEach(([f,d])=>{playTone(f,d,'sawtooth',0.32,t);t+=d+0.04;});
+  t+=0.1;
+  notes.forEach(([f,d])=>{playTone(f,d,'sawtooth',0.12,t+0.02);t+=d+0.04;});
+}
+
+// ── Vinner-fanfare ──
+function playWinnerFanfare(){
+  if(state.settings.volFx===0)return;
+  const melody=[523,523,523,523,415,466,523];
+  const durs= [0.15,0.15,0.15,0.45,0.2,0.2,0.8];
+  let t=0;
+  melody.forEach((f,i)=>{
+    playTone(f,durs[i],'sawtooth',0.3,t);
+    playTone(f*0.5,durs[i],'sawtooth',0.15,t);
+    t+=durs[i]+0.05;
+  });
+  setTimeout(()=>playDrum(0.6*state.settings.volFx),t*1000);
+  setTimeout(()=>playDrum(0.8*state.settings.volFx),t*1000+150);
+  setTimeout(()=>playDrum(1.0*state.settings.volFx),(t*1000)+300);
+}
+
+// ── Nedtellingsbeep ──
+function playCountdownBeep(high){
+  if(state.settings.volFx===0)return;
+  if(high){
+    playTone(880,0.08,'square',0.3);
+    playTone(1100,0.12,'sine',0.25,0.1);
+    playTone(1320,0.25,'sine',0.2,0.22);
+  } else {
+    playTone(440,0.12,'square',0.18);
+  }
+}
+
+// ── Trommeskudd ──
+function playDrum(vol){
+  if((vol||0.5)*state.settings.volFx<0.01)return;
+  try{
+    const ctx=getACtx();
+    const dur=0.18;
+    const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*dur),ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){d[i]=(Math.random()*2-1)*Math.exp(-i/(d.length*0.15));}
+    const src=ctx.createBufferSource();
+    const g=ctx.createGain();
+    const lp=ctx.createBiquadFilter();
+    lp.type='lowpass';lp.frequency.value=200;
+    src.buffer=buf;src.connect(lp);lp.connect(g);g.connect(ctx.destination);
+    g.gain.value=(vol||0.5)*state.settings.volFx;
+    src.start();src.stop(ctx.currentTime+dur+0.05);
+  }catch(e){}
+}
+
+// ── Hovslaglyd ──
+function playHoofbeat(vol){
+  const effVol=(vol||0.15)*state.settings.volHooves;
+  if(effVol<0.005)return;
+  try{
+    const ctx=getACtx();
+    [0,90,200,300].forEach((ms)=>{
+      setTimeout(()=>{
+        try{
+          const dur=0.04+Math.random()*0.02;
+          const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*dur),ctx.sampleRate);
+          const d=buf.getChannelData(0);
+          for(let j=0;j<d.length;j++){d[j]=(Math.random()*2-1)*Math.exp(-j/(d.length*0.08));}
+          const src=ctx.createBufferSource();
+          const g=ctx.createGain();
+          const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=800+Math.random()*400;
+          const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4000;
+          src.buffer=buf;src.connect(hp);hp.connect(lp);lp.connect(g);g.connect(ctx.destination);
+          g.gain.value=effVol*(0.8+Math.random()*0.4);
+          src.start();src.stop(ctx.currentTime+dur+0.05);
+        }catch(e){}
+      },ms);
+    });
+  }catch(e){}
+}
+
+// ── Gallopp-løkke ──
+function gallopLoop(){
+  if(state.racePhase!=='running')return;
+  const active=state.horses.filter(h=>h.speedMult>0.3).length;
+  const vol=Math.min(0.22,0.06*active);
+  playHoofbeat(vol);
+  const maxPos=Math.max(...state.positions);
+  const interval=maxPos>0.7?220+Math.random()*50:300+Math.random()*80;
+  setTimeout(gallopLoop,interval);
+}
+
+// ── Jubel-burst (INGEN buzz – kun kort burst) ──
+function playCrowdCheer(intensity){
+  const effVol=(intensity||1.0)*state.settings.volCheer;
+  if(effVol<0.01)return;
+  try{
+    const ctx=getACtx();
+    // Kort staccato noise-burst med jevn nedgang – ikke buzzete
+    const dur=0.4;
+    const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1);
+    const src=ctx.createBufferSource();
+    const g=ctx.createGain();
+    // Bred bandpass: menneskestemmer
+    const bp1=ctx.createBiquadFilter();bp1.type='bandpass';bp1.frequency.value=600;bp1.Q.value=0.3;
+    const bp2=ctx.createBiquadFilter();bp2.type='bandpass';bp2.frequency.value=1500;bp2.Q.value=0.4;
+    const bp3=ctx.createBiquadFilter();bp3.type='bandpass';bp3.frequency.value=3000;bp3.Q.value=0.5;
+    src.buffer=buf;
+    src.connect(bp1);bp1.connect(g);
+    src.connect(bp2);bp2.connect(g);
+    src.connect(bp3);bp3.connect(g);
+    g.connect(ctx.destination);
+    g.gain.setValueAtTime(0,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.28*effVol,ctx.currentTime+0.05);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    src.start();src.stop(ctx.currentTime+dur+0.05);
+    // Overlappende burst for naturlig masse-jubel
+    for(let i=1;i<=4;i++){
+      setTimeout(()=>{
+        if(state.settings.volCheer<0.01)return;
+        try{
+          const b2=ctx.createBuffer(1,ctx.sampleRate*0.35,ctx.sampleRate);
+          const dd=b2.getChannelData(0);
+          for(let j=0;j<dd.length;j++) dd[j]=(Math.random()*2-1);
+          const s2=ctx.createBufferSource();
+          const g2=ctx.createGain();
+          const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=800+Math.random()*1200;f.Q.value=0.4;
+          s2.buffer=b2;s2.connect(f);f.connect(g2);g2.connect(ctx.destination);
+          const startVol=0.15*effVol*Math.random();
+          g2.gain.setValueAtTime(startVol,ctx.currentTime);
+          g2.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
+          s2.start();s2.stop(ctx.currentTime+0.4);
+        }catch(e){}
+      },i*120+Math.random()*80);
+    }
+  }catch(e){}
+}
+
+// ── "Aaah!" – spenningsrop ──
+function playCrowdTension(){
+  const effVol=state.settings.volCheer;
+  if(effVol<0.01)return;
+  try{
+    const ctx=getACtx();
+    const osc=ctx.createOscillator();
+    const og=ctx.createGain();
+    osc.connect(og);og.connect(ctx.destination);
+    osc.type='sine';
+    osc.frequency.setValueAtTime(180,ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(300,ctx.currentTime+0.9);
+    osc.frequency.linearRampToValueAtTime(260,ctx.currentTime+1.4);
+    og.gain.setValueAtTime(0,ctx.currentTime);
+    og.gain.linearRampToValueAtTime(0.07*effVol,ctx.currentTime+0.3);
+    og.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+1.6);
+    osc.start();osc.stop(ctx.currentTime+1.7);
+  }catch(e){}
+}
+
+// ── Dynamisk publikum under løp – FJERNET (var buzze) ──
+function startCrowdNoise(){}
+function stopCrowdNoise(){}
+function updateCrowdExcitement(){
+  // Spill en liten jubel-puls når det er tett kappløp
+  if(!state.horses.length)return;
+  const now=Date.now();
+  if(now-lastCrowdUpdate<3000)return;
+  lastCrowdUpdate=now;
+  const sorted=[...state.positions].sort((a,b)=>b-a);
+  if(sorted.length<2)return;
+  const gap=sorted[0]-sorted[1];
+  if(gap<0.03){
+    playCrowdCheer(0.3);
+    say(COMMENTARY.tight);
+  }
+}
+
+// ── Kaos-lyder ──
+function playEventStab(){
+  if(state.settings.volFx===0)return;
+  playTone(220,.05,'sawtooth',.4);
+  playTone(440,.1,'square',.3,.06);
+}
+
+function startRaceAmbience(){}
+function stopRaceAmbience(){stopCrowdNoise();}
+
+
+// ══════════════════════════════════════════════════════
+// RADIO KOMMENTATOR – Web Speech API + AM-radio filter
+// ══════════════════════════════════════════════════════
+let _voiceQueue=[];
+let _voiceBusy=false;
+let _voiceEnabled=true;
+let _lastCommentTime=0;
+
+// Pick best available voice – prefer Norwegian, fall back to English
+let _selectedVoice=null;
+function _pickVoice(){
+  if(_selectedVoice)return;
+  const voices=speechSynthesis.getVoices();
+  // Try Norwegian
+  _selectedVoice=voices.find(v=>v.lang.startsWith('nb')||v.lang.startsWith('no'))
+    || voices.find(v=>v.lang.startsWith('en-GB'))
+    || voices.find(v=>v.lang.startsWith('en'))
+    || voices[0]||null;
+}
+if(speechSynthesis.onvoiceschanged!==undefined){
+  speechSynthesis.onvoiceschanged=_pickVoice;
+}
+setTimeout(_pickVoice,500);
+
+function _processVoiceQueue(){
+  if(_voiceBusy||_voiceQueue.length===0)return;
+  _voiceBusy=true;
+  const {text,cb}=_voiceQueue.shift();
+  _pickVoice();
+
+  // Use Web Audio to route speech through AM-radio filter
+  // We create an AudioContext destination stream, pipe speech into it
+  // NOTE: Web Speech API doesn't expose an AudioNode, so we use a workaround:
+  // route via MediaStreamDestination to capture, then process
+  // Simpler approach: apply filter AFTER with an AudioContext analyser node
+  // The most compatible method: just use SpeechSynthesis with pitch/rate tuned,
+  // and apply a CSS or audio context trick for radio effect.
+  // We use pitch=0.85, rate=0.88 for that gravelly old-school delivery.
+
+  const utter=new SpeechSynthesisUtterance(text);
+  if(_selectedVoice)utter.voice=_selectedVoice;
+  utter.volume=state.settings.volVoice;
+  utter.rate=0.88;       // slightly slower = more dramatic
+  utter.pitch=0.82;      // lower = authoritative radio voice
+  utter.lang=_selectedVoice?.lang||'nb-NO';
+
+  // Radio crackle: short noise burst before speech via Web Audio
+  try{
+    const ctx=getACtx();
+    const dur=0.12;
+    const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*dur),ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.3*Math.exp(-i/(d.length*0.3));
+    const src=ctx.createBufferSource();
+    const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1800;bp.Q.value=2;
+    const g=ctx.createGain();g.gain.value=state.settings.volVoice*0.4;
+    src.buffer=buf;src.connect(bp);bp.connect(g);g.connect(ctx.destination);
+    src.start();src.stop(ctx.currentTime+dur);
+  }catch(e){}
+
+  utter.onend=()=>{
+    _voiceBusy=false;
+    cb&&cb();
+    setTimeout(_processVoiceQueue,120);
+  };
+  utter.onerror=()=>{_voiceBusy=false;setTimeout(_processVoiceQueue,120);};
+
+  // Safety timeout in case onend never fires
+  const safetyMs=Math.max(4000, text.length*120);
+  const safety=setTimeout(()=>{speechSynthesis.cancel();_voiceBusy=false;_processVoiceQueue();},safetyMs);
+  utter.onend=()=>{clearTimeout(safety);_voiceBusy=false;cb&&cb();setTimeout(_processVoiceQueue,120);};
+
+  speechSynthesis.speak(utter);
+}
+
+function say(text, priority){
+  if(!state.settings.volVoice||state.settings.volVoice<0.01)return;
+  if(priority){
+    // High priority: clear queue and interrupt
+    _voiceQueue=[];
+    speechSynthesis.cancel();
+    _voiceBusy=false;
+  }
+  // Debounce: don't queue if last comment was less than 1.5s ago and not priority
+  const now=Date.now();
+  if(!priority&&now-_lastCommentTime<1500)return;
+  _lastCommentTime=now;
+  _voiceQueue.push({text,cb:null});
+  _processVoiceQueue();
+}
+
+// ── Commentary lines ──
+const COMMENTARY={
+  start:[
+    'Og DE er AV GÅRDE! Banen er åpen!',
+    'Startskuddet har gått! La løpet begynne!',
+    'De er ute av startblokkene! Det er fart over feltet!',
+  ],
+  winner:(name,wine)=>[
+    `${name} tar seieren! En fantastisk prestasjon!`,
+    `Det er ${name}! ${name} tar premievinen!`,
+    `Utrolig! ${name} krysser målstreken først og sikrer seg ${wine}!`,
+  ],
+  turbo:(name)=>[`${name} finner et ekstra gir! Se på den farten!`,`Noe har skjedd med ${name}! Rakett-fart!`],
+  sleep:(name)=>[`Åh nei, ${name} sovner midt i løpet!`,`${name} tar en liten blund! Katastrofalt!`],
+  bear:(name)=>[`En bjørn på banen! ${name} er i trøbbel!`,`Bjørn! Det er en bjørn! ${name} løper for livet!`],
+  bee:(name)=>[`Bie i ansiktet på ${name}!`,`${name} har fått en bie rett i trynet! Kaos!`],
+  cow:(name)=>[`En ku vandrer inn foran ${name}! Ingen kan stoppe den!`],
+  alien:(name)=>[`${name} blir løftet av en UFO! Utrolig scener her!`],
+  blackhole:(name)=>[`Et sort hull! ${name} er borte fra banen!`],
+  wine:(name)=>[`${name} tar en slurk av premievinen! Litt ustø nå!`],
+  phone:(name)=>[`${name} sjekker telefonen midt i løpet! TikTok kan vente!`],
+  tornado:(name)=>[`En tornado river tak i ${name}!`],
+  nitro:(name)=>[`Energidrikk til ${name}! Se den spurten!`],
+  cheer:(name)=>[`Publikum heier på ${name}! De er totalt oppildnet!`],
+  tight:'Det er tett i front! Hvem tar det?',
+  final:'Det er siste løp i kveld! Alt eller ingenting!',
+};
+
+function pickLine(lines){ return lines[Math.floor(Math.random()*lines.length)]; }
+
+function commentOnEvent(evtId, horseName){
+  if(COMMENTARY[evtId]){
+    say(pickLine(COMMENTARY[evtId](horseName)));
+  }
+}
+
+// SETTINGS
+function updateSettingLabel(key,val){
+  val=+val;
+  if(key==='speed'){state.settings.speed=val;document.getElementById('lbl-speed').textContent=SPEED_LABELS[val];}
+  if(key==='duration'){state.settings.duration=val;document.getElementById('lbl-duration').textContent=val+'s';}
+  if(key==='chaos'){state.settings.chaos=val;document.getElementById('lbl-chaos').textContent=CHAOS_LABELS[val];}
+  if(key==='horses'){state.settings.numHorses=val;document.getElementById('lbl-horses').textContent=val;}
+  if(key==='vol-hooves'){state.settings.volHooves=val/100;document.getElementById('lbl-vol-hooves').textContent=(val===0?'Av':val+'%');}
+  if(key==='vol-cheer'){state.settings.volCheer=val/100;document.getElementById('lbl-vol-cheer').textContent=(val===0?'Av':val+'%');}
+  if(key==='vol-fx'){state.settings.volFx=val/100;document.getElementById('lbl-vol-fx').textContent=(val===0?'Av':val+'%');}
+  if(key==='vol-voice'){state.settings.volVoice=val/100;document.getElementById('lbl-vol-voice').textContent=(val===0?'Av':val+'%');}
+}
+
+// BLOCKS
+function addBlock(letter,colorName,count,active){letter=letter||LETTERS[0];colorName=colorName||COLORS[1].name;count=count||100;active=active!==false;const id=Date.now()+Math.random();state.blocks.push({id,letter,color:colorName,count,active});renderBlocks();}
+function removeBlock(id){state.blocks=state.blocks.filter(b=>b.id!==id);renderBlocks();}
+function updateBlock(id,field,val){const b=state.blocks.find(b=>b.id===id);if(b)b[field]=val;}
+function renderBlocks(){document.getElementById('block-grid').innerHTML=state.blocks.map(b=>{const c=COLORS.find(x=>x.name===b.color)||COLORS[0];return `<div class="block-item"><div class="block-label"><span class="block-color-dot" style="background:${c.hex}"></span>Blokk<button class="remove-btn" onclick="removeBlock(${b.id})" style="float:right">✕</button></div><select onchange="updateBlock(${b.id},'letter',this.value)">${LETTERS.map(l=>`<option value="${l}"${b.letter===l?' selected':''}>${l}</option>`).join('')}</select><select onchange="updateBlock(${b.id},'color',this.value)">${COLORS.map(x=>`<option value="${x.name}"${b.color===x.name?' selected':''}>${x.name}</option>`).join('')}</select><input type="number" min="1" max="200" value="${b.count}" onchange="updateBlock(${b.id},'count',+this.value)" placeholder="Antall lodd"><label style="font-size:.82rem;color:#b89860;cursor:pointer"><input type="checkbox"${b.active?' checked':''} onchange="updateBlock(${b.id},'active',this.checked)"> Aktiv</label></div>`;}).join('');}
+
+// WINES
+function addWine(name){name=name||'';const id=Date.now()+Math.random();state.wines.push({id,name});renderWines();}
+function removeWine(id){state.wines=state.wines.filter(w=>w.id!==id);renderWines();}
+function updateWine(id,field,val){const w=state.wines.find(w=>w.id===id);if(w)w[field]=val;}
+function renderWines(){document.getElementById('wine-list').innerHTML=state.wines.map((w,i)=>`<div class="wine-item"><div class="wine-num">${i+1}</div><input type="text" value="${w.name}" placeholder="Vinnavn (valgfritt)" onchange="updateWine(${w.id},'name',this.value)"><button class="remove-btn" onclick="removeWine(${w.id})">✕</button></div>`).join('');}
+
+// SHOW INIT
+function startShow(){const active=state.blocks.filter(b=>b.active);if(active.length<2){alert('Legg til minst 2 aktive loddblokker!');return;}if(state.wines.length===0){alert('Legg til minst 1 vin!');return;}state.raceOrder=state.wines.map((_,i)=>i);state.currentRace=0;state.results=[];state.usedTickets={};document.getElementById('setup-view').classList.remove('active');document.getElementById('race-view').classList.add('active');buildFinishLine();setupRace();}
+function goToSetup(){state.racePhase='idle';stopRaceAmbience();document.getElementById('race-view').classList.remove('active');document.getElementById('setup-view').classList.add('active');}
+function buildFinishLine(){const c=document.getElementById('finish-checker');c.innerHTML='';for(let i=0;i<100;i++){const d=document.createElement('div');d.className='finish-cell';c.appendChild(d);}}
+
+
+// Draw a ticket number that hasn't been used for this block yet
+function drawUniqueTicket(block){
+  const key=block.id;
+  if(!state.usedTickets[key]) state.usedTickets[key]=new Set();
+  const used=state.usedTickets[key];
+  const total=block.count;
+  // If all tickets exhausted, reset (shouldn't happen in normal play)
+  if(used.size>=total) used.clear();
+  let t;
+  let tries=0;
+  do {
+    t=Math.floor(Math.random()*total)+1;
+    tries++;
+  } while(used.has(t)&&tries<total*3);
+  used.add(t);
+  return t;
+}
+
+// RACE SETUP
+function setupRace(){
+  if(state.currentRace>=state.raceOrder.length){showFinalResults();return;}
+  clearFeed();
+  const active=state.blocks.filter(b=>b.active);
+  const wineIdx=state.raceOrder[state.currentRace];
+  const wine=state.wines[wineIdx];
+  document.getElementById('race-counter').textContent='Løp '+(state.currentRace+1)+' av '+state.raceOrder.length;
+  document.getElementById('current-wine-name').textContent=wine.name||'Vin '+(wineIdx+1);
+  // chaos-banner removed from HTML, skip
+  const numInd=Math.min(state.settings.numHorses,active.length);
+  const shuffled=[...active].sort(()=>Math.random()-.5);
+  const indBlocks=shuffled.slice(0,numInd);
+  const wcBlock=active[Math.floor(Math.random()*active.length)];
+  // Clear effects from previous race
+  state.horses.forEach(h=>h.effectClass=null);
+  state.horses=[];
+  const emojis=['🐴','🏇','🐎','🦄','🦓','🐆'];
+  indBlocks.forEach((block,i)=>{
+    const ticket=drawUniqueTicket(block);
+    const colorObj=COLORS.find(c=>c.name===block.color)||COLORS[0];
+    state.horses.push({type:'individual',block,colorObj,ticket:`${block.letter} ${ticket}`,emoji:emojis[i%emojis.length],name:`${block.letter}-${block.color}`,idx:i,speedMult:1,status:null});
+  });
+  const wcColor=COLORS.find(c=>c.name===wcBlock.color)||COLORS[0];
+  state.horses.push({type:'wildcard',block:wcBlock,colorObj:wcColor,ticket:`🎲 Alle`,emoji:'🎲',name:`Wildcard (${wcBlock.color})`,idx:state.horses.length,speedMult:1,status:null,effectClass:null});
+  state.horses.forEach((h,i)=>h.idx=i);
+  // wildcard-banner removed from HTML, skip
+  renderLanes();
+  fbPublishHorses(state.horses);
+  fbListenBoosts();
+  state.positions=state.horses.map(()=>0);
+  state.winner=-1;state.racePhase='idle';state.eventActive=false;
+  updatePhase('Trykk START LØP for å begynne!');
+  document.getElementById('btn-start-race').style.display='none';
+  document.getElementById('btn-next-race').style.display='none';
+  addFeed('🍷 Premie: '+(wine.name||'Vin '+(wineIdx+1)),'normal');
+  addFeed('🏇 '+state.horses.length+' hester stiller til start!','normal');
+  state.horses.forEach(h=>addFeed('  • '+h.name+': '+(h.type==='wildcard'?'🎲 WILDCARD':h.ticket),'normal'));
+  // Start loddtrekning automatisk etter at race-view er synlig
+  requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(()=>runTicketDraw(state.horses, ()=>{}), 200)));
+}
+
+function renderLanes(){
+  document.getElementById('track-lanes').innerHTML=state.horses.map((h,i)=>{
+    const isWild=h.type==='wildcard';
+    // Horse color: tinted background circle behind emoji
+    const horseBg=`radial-gradient(circle at 40% 40%, ${h.colorObj.hex}cc, ${h.colorObj.hex}55)`;
+    const ticketLine=isWild?'🎲':h.ticket;
+    return `<div class="lane" id="lane-${i}">
+      <div class="lane-bg" style="background:${h.colorObj.hex}"></div>
+      <div class="lane-stripe"></div>
+      <div class="lane-label">
+        <div class="lane-color-badge" style="background:${h.colorObj.hex};color:${h.colorObj.textColor}">${isWild?'🎲':h.block.letter}</div>
+        <div class="lane-ticket">${ticketLine}</div>
+      </div>
+      <div class="horse-wrapper" id="horse-${i}" style="left:130px">
+        <div class="horse-bubble" style="background:${horseBg};border:2px solid ${h.colorObj.hex};box-shadow:0 0 10px ${h.colorObj.hex}88;">
+          <div class="horse-emoji">${h.emoji}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+// ──────────────────────────────────────────
+// LODDTREKNING – morsom animert trekning
+// ──────────────────────────────────────────
+function runTicketDraw(horses, onDone){
+  const overlay=document.getElementById('draw-tickets-overlay');
+  const container=document.getElementById('dt-horses');
+  const startBtn=document.getElementById('dt-start-btn');
+  container.innerHTML='';
+  startBtn.classList.remove('ready');
+  overlay.classList.add('show');
+
+  // Bygg kort for hver hest
+  horses.forEach((h,i)=>{
+    const isWild=h.type==='wildcard';
+    const card=document.createElement('div');
+    card.className='dt-horse-card'+(isWild?' wildcard-card':'');
+    card.id='dt-card-'+i;
+    card.innerHTML=`
+      <span class="dt-horse-emoji" style="filter:drop-shadow(0 0 8px ${h.colorObj.hex})">${h.emoji}</span>
+      <span class="dt-horse-name" style="color:${h.colorObj.hex}">${h.name}</span>
+      <span class="dt-slot" id="dt-slot-${i}">???</span>`;
+    container.appendChild(card);
+  });
+
+  // Trekk hestene én etter én med forsinkelse
+  let delay=600;
+  horses.forEach((h,i)=>{
+    setTimeout(()=>animateSlot(h,i,()=>{
+      // Etter siste hest: vis start-knapp
+      if(i===horses.length-1){
+        setTimeout(()=>{
+          startBtn.classList.add('ready');
+          // Fanfare-lyd
+          playFanfare();
+        },400);
+      }
+    }),delay);
+    delay+=isLastIndividual(horses,i)?900:700; // litt mer pause etter siste individuelle
+  });
+}
+
+function isLastIndividual(horses,i){
+  return i===horses.filter(h=>h.type==='individual').length-1;
+}
+
+function animateSlot(horse, idx, onDone){
+  const card=document.getElementById('dt-card-'+idx);
+  const slot=document.getElementById('dt-slot-'+idx);
+  if(!card||!slot)return;
+
+  card.classList.add('drawing');
+
+  const isWild=horse.type==='wildcard';
+  const max=horse.block.count;
+
+  // Rolling animation: syklisk talling + lydeffekt
+  let rollCount=0;
+  const rollDuration=isWild?800:1100; // wildcard er raskere
+  const rollInterval=60;
+  const totalRolls=Math.floor(rollDuration/rollInterval);
+
+  slot.classList.add('rolling');
+  playTone(600,0.05,'square',0.08*state.settings.volFx);
+
+  const rollTimer=setInterval(()=>{
+    rollCount++;
+    const fakeNum=Math.floor(Math.random()*max)+1;
+    if(isWild){
+      slot.textContent='🎲 ???';
+    } else {
+      slot.textContent=horse.block.letter+' '+fakeNum;
+    }
+    // Speed up tone as we approach end
+    if(rollCount>totalRolls*0.7){
+      playTone(800+rollCount*10,0.04,'square',0.06*state.settings.volFx);
+    }
+    if(rollCount>=totalRolls){
+      clearInterval(rollTimer);
+      // Land on the real value
+      slot.classList.remove('rolling');
+      slot.classList.add('landed');
+      card.classList.remove('drawing');
+      card.classList.add('done');
+      if(isWild){
+        slot.textContent='🎲 ALLE';
+      } else {
+        slot.textContent=horse.ticket; // e.g. 'L 59'
+      }
+      // Ding-lyd ved landing
+      playTone(1200,0.12,'sine',0.22*state.settings.volFx);
+      playTone(1800,0.18,'sine',0.16*state.settings.volFx,0.06);
+      // Update the lane label too
+      const laneTicket=document.querySelector('#lane-'+horse.idx+' .lane-ticket');
+      if(laneTicket) laneTicket.textContent=isWild?'🎲 ALLE':horse.ticket;
+      setTimeout(onDone,200);
+    }
+  },rollInterval);
+}
+
+function closeDrawTickets(){
+  const overlay=document.getElementById('draw-tickets-overlay');
+  overlay.classList.remove('show');
+  // Start countdown
+  startRace();
+}
+
+// RACE ENGINE
+function startRace(){
+  getACtx();
+  document.getElementById('btn-start-race').disabled=true;
+  state.racePhase='countdown';
+  // Starthorn + forventningsfull publikum-støy
+  startRaceAmbience();
+  playFanfare();
+  setTimeout(()=>{
+    let count=3;
+    updatePhase('Starter om '+count+'...');
+    playCountdownBeep(false);
+    const cd=setInterval(()=>{
+      count--;
+      if(count>0){
+        updatePhase('Starter om '+count+'...');
+        playCountdownBeep(count===1);
+        if(count===1) playCrowdTension();
+      } else {
+        clearInterval(cd);
+        updatePhase('🏇 OG DE ER AV GÅRDE!');
+        playCountdownBeep(true);
+        playCrowdCheer(1.2);
+        say(pickLine(COMMENTARY.start),true);
+        setTimeout(runRace,200);
+      }
+    },900);
+  }, 2200); // vent til fanfaren er ferdig
+}
+
+function runRace(){
+  state.racePhase='running';
+  gallopLoop();
+  const fps=60;
+  const targetSecs=state.settings.duration;
+  const settingsMult=[0.5,0.75,1.0,1.4,2.2][state.settings.speed-1];
+  const baseSpeed=(1/(fps*targetSecs))*settingsMult;
+  const variance=0.3;
+  const basePerHorse=state.horses.map(()=>baseSpeed*(0.85+Math.random()*.3));
+  scheduleChaosEvents(targetSecs);
+  const trackEl=document.getElementById('track-lanes');
+  const totalWidth=(trackEl.offsetWidth||700)-130-40;
+  // Win when midpoint of bubble (26px from left edge) crosses finish
+  const bubbleMidOffset=26; // half of 52px bubble
+  const finishThreshold=1-(bubbleMidOffset/totalWidth);
+
+  const tick=()=>{
+    if(state.racePhase!=='running')return;
+    for(let i=0;i<state.horses.length;i++){
+      if(state.positions[i]>=1)continue; // already fully past finish, skip
+      const h=state.horses[i];
+      const delta=basePerHorse[i]*h.speedMult*(1-variance/2+Math.random()*variance);
+      state.positions[i]=Math.max(0,state.positions[i]+delta);
+      if(state.positions[i]>=finishThreshold && state.winner===-1){
+        state.winner=i;
+        // Freeze all horses immediately
+        state.horses.forEach(horse=>{ horse.speedMult=0; horse.status=null; clearHorseEffect(horse); });
+      }
+      const el=document.getElementById('horse-'+i);
+      if(el){
+        el.style.left=(130+state.positions[i]*totalWidth)+'px';
+        // direction handled by CSS classes below
+        if(h.speedMult>0.01)el.classList.add('horse-running');else el.classList.remove('horse-running');
+        if(h.speedMult<-0.05)el.classList.add('horse-reversed');else el.classList.remove('horse-reversed');
+        // Persistent visual effect
+        const bubble=el.querySelector('.horse-bubble');
+        if(bubble){
+          const want='horse-bubble'+(h.effectClass?' '+h.effectClass:'');
+          if(bubble.className!==want) bubble.className=want;
+        }
+        let badge=el.querySelector('.horse-status-badge');
+        if(h.status){if(!badge){badge=document.createElement('div');badge.className='horse-status-badge';el.appendChild(badge);}badge.textContent=h.status;}else{if(badge)badge.remove();}
+      }
+    }
+    if(state.winner!==-1){
+      state.racePhase='done';
+      stopCrowdNoise();
+      announceWinner();
+    } else {
+      updateCrowdExcitement();
+      requestAnimationFrame(tick);
+    }
+  };
+  requestAnimationFrame(tick);
+}
+
+// ──────────────────────────────────────────
+// CHAOS SCHEDULER – én hendelse om gangen
+// ──────────────────────────────────────────
+function scheduleChaosEvents(durationSecs){
+  if(state.settings.chaos===0)return;
+  // Minste intervall mellom events (ms): mer kaos = kortere pause
+  const minGap=[0,6000,4000,2500][state.settings.chaos];
+  // Antall events
+  const eventsPerMin=[0,3,6,14][state.settings.chaos];
+  const numEvents=Math.max(1,Math.round(eventsPerMin*durationSecs/60));
+
+  // Spre events jevnt over løpet med tilfeldig variasjon, ingen overlapp
+  let cursor=durationSecs*0.08*1000; // start ikke helt i starten
+  const slots=[];
+  for(let e=0;e<numEvents;e++){
+    cursor+=minGap*(0.6+Math.random()*0.8);
+    if(cursor>durationSecs*0.92*1000) break;
+    slots.push(cursor);
+  }
+
+  slots.forEach(t=>{
+    setTimeout(()=>{
+      if(state.racePhase!=='running') return;
+      if(state.eventActive) return; // én om gangen
+      const alive=state.horses.filter((_,i)=>state.positions[i]<0.92);
+      if(alive.length===0) return;
+
+      state.eventActive=true;
+      const horse=alive[Math.floor(Math.random()*alive.length)];
+      const evt=pickWeightedEvent();
+      addFeed(evt.text(horse.name),'event');
+      playEventStab();
+      if(['turbo','nitro','rocket','cheer','eagle','ghost'].includes(evt.id)){
+        setTimeout(()=>playCrowdCheer(0.5),300);
+      } else if(['bear','bee','banana','tornado','magnet'].includes(evt.id)){
+        setTimeout(()=>playCrowdTension(),200);
+      }
+      updatePhase(evt.emoji+' '+evt.id.toUpperCase()+'!');
+      evt.apply(horse);
+      const clearDelay=evt.id==='bear'?7500:evt.id==='alien'||evt.id==='cow'?5500:evt.id==='blackhole'?6000:3500;
+      setTimeout(()=>{
+        state.eventActive=false;
+        updatePhase('🏇 OG DE LØPER VIDERE!');
+      }, clearDelay);
+    }, t);
+  });
+
+  // Galskap: ambient visuelle effekter (ikke hendelser, bare visuelt)
+  if(state.settings.chaos===3){
+    scheduleAmbientChaos(durationSecs);
+  }
+}
+
+function scheduleAmbientChaos(durationSecs){ /* disabled */ }
+
+// ──────────────────────────────────────────
+// VISUELLE KAOS-EFFEKTER
+// ──────────────────────────────────────────
+function screenShake(durationMs){ /* disabled */ }
+function chaosFlash(color,durationMs){ /* disabled */ }
+
+
+
+
+// ── Persistent horse visual effect ──
+function setHorseEffect(horse, effectClass){
+  horse.effectClass = effectClass;
+  const el = document.getElementById('horse-'+horse.idx);
+  if(!el) return;
+  const bubble = el.querySelector('.horse-bubble');
+  if(!bubble) return;
+  bubble.className = 'horse-bubble ' + effectClass;
+}
+function clearHorseEffect(horse){
+  horse.effectClass = null;
+  const el = document.getElementById('horse-'+horse.idx);
+  if(!el) return;
+  const bubble = el.querySelector('.horse-bubble');
+  if(!bubble) return;
+  bubble.className = 'horse-bubble';
+}
+
+// LANE FLASH – visual highlight on event
+function flashLane(horseIdx, type){
+  const lane=document.getElementById('lane-'+horseIdx);
+  if(!lane)return;
+  lane.classList.remove('event-active','event-bad','event-boost');
+  void lane.offsetWidth;
+  if(type==='boost') lane.classList.add('event-boost');
+  else if(type==='bad') lane.classList.add('event-bad');
+  else lane.classList.add('event-active');
+  setTimeout(()=>lane.classList.remove('event-active','event-bad','event-boost'),700);
+}
+
+// EVENT BANNER – fixed stack, one at a time, never clipped
+let _activeBanner=null;
+function spawnEventBanner(emoji, text, color){
+  // Remove any existing banner immediately
+  if(_activeBanner){
+    _activeBanner.remove();
+    _activeBanner=null;
+  }
+  const stack=document.getElementById('event-banner-stack');
+  if(!stack)return;
+  const b=document.createElement('div');
+  b.className='event-banner';
+  b.style.borderColor=color||'#FFD700';
+  b.style.color=color||'#FFD700';
+  b.innerHTML=`<span class="event-banner-emoji">${emoji}</span><span class="event-banner-text">${text}</span>`;
+  stack.appendChild(b);
+  _activeBanner=b;
+  // Trigger show on next frame
+  requestAnimationFrame(()=>requestAnimationFrame(()=>b.classList.add('show')));
+  // Fade out after 2s
+  setTimeout(()=>{
+    b.classList.add('hide');
+    setTimeout(()=>{b.remove();if(_activeBanner===b)_activeBanner=null;},350);
+  },2000);
+}
+
+// BEAR INVADER – comes from top or bottom, pauses, then targets a lane
+function spawnBearInvader(targetHorseIdx, onArrive){
+  const raceMain=document.getElementById('track-lanes');
+  if(!raceMain){onArrive&&onArrive();return;}
+  const laneEl=document.getElementById('lane-'+targetHorseIdx);
+  const trackRect=document.getElementById('track-lanes').getBoundingClientRect();
+
+  const fromTop=Math.random()<0.5;
+  const bear=document.createElement('div');
+  bear.className='bear-invader';
+  bear.textContent='🐻';
+  bear.style.left=(trackRect.left+trackRect.width*0.15+Math.random()*trackRect.width*0.5)+'px';
+  bear.style.top=(fromTop?'-80px':(window.innerHeight+20)+'px');
+  bear.style.transition='top 1.2s cubic-bezier(.4,0,.2,1), left .8s ease-in-out';
+  document.body.appendChild(bear);
+
+  // Step 1: Rush to track edge (top/bottom of visible area)
+  setTimeout(()=>{
+    const midY=fromTop?trackRect.top-20:trackRect.bottom+20;
+    bear.style.top=midY+'px';
+  },50);
+
+  // Step 2: After arriving at edge, move toward the target lane
+  setTimeout(()=>{
+    if(laneEl){
+      const laneRect=laneEl.getBoundingClientRect();
+      const targetX=laneRect.left+laneRect.width*0.35+Math.random()*laneRect.width*0.2;
+      const targetY=fromTop?laneRect.top+10:laneRect.bottom-50;
+      bear.style.transition='top 0.9s ease-in, left 0.9s ease-in';
+      bear.style.top=targetY+'px';
+      bear.style.left=targetX+'px';
+      bear.style.fontSize='4.5rem';
+    }
+  }, 1400);
+
+  // Step 3: Hit! flash the lane
+  setTimeout(()=>{
+    flashLane(targetHorseIdx,'bad');
+    bear.textContent='💥🐻';
+    spawnFloater(targetHorseIdx,'🐻');
+    onArrive&&onArrive();
+  }, 2400);
+
+  // Step 4: bear runs off screen
+  setTimeout(()=>{
+    bear.style.transition='top 0.7s ease-in, opacity 0.4s';
+    bear.style.top=(fromTop?'-120px':(window.innerHeight+100)+'px');
+    bear.style.opacity='0';
+  }, 3200);
+
+  setTimeout(()=>bear.remove(), 4000);
+}
+
+// FLOATER
+function spawnFloater(horseIdx,emoji){
+  const el=document.getElementById('horse-'+horseIdx);
+  if(!el)return;
+  const rect=el.getBoundingClientRect();
+  const f=document.createElement('div');
+  f.className='event-float';f.textContent=emoji;
+  f.style.left=(rect.left+rect.width/2)+'px';f.style.top=rect.top+'px';
+  document.body.appendChild(f);setTimeout(()=>f.remove(),2000);
+}
+
+// WINNER
+function announceWinner(){
+  const w=state.horses[state.winner];
+  addFeed('🏆 MÅL! '+w.name+' krysser målstreken FØRST!','winner');
+  updatePhase('🏆 VINNER: '+w.name);
+  if(w.type==='wildcard')setTimeout(()=>drawWildcardWinner(w),1200);
+  else setTimeout(()=>showWinner(w.ticket,w.type),1000);
+}
+
+function drawWildcardWinner(winner){
+  const ov=document.getElementById('draw-overlay');
+  ov.classList.add('show');
+  document.getElementById('draw-text').textContent='Trekker fra '+winner.block.letter+'-'+winner.block.color+'...';
+  let spins=0;
+  const iv=setInterval(()=>{
+    const r=Math.floor(Math.random()*winner.block.count)+1;
+    document.getElementById('draw-text').textContent=winner.block.letter+' '+r;
+    spins++;
+    if(spins>=22){
+      clearInterval(iv);
+      const final=Math.floor(Math.random()*winner.block.count)+1;
+      const ticket=winner.block.letter+' '+final;
+      document.getElementById('draw-text').textContent='🎉 '+ticket;
+      setTimeout(()=>{ov.classList.remove('show');showWinner(ticket,'wildcard');},1600);
+    }
+  },110);
+}
+
+function showWinner(ticket,type){
+  const wineIdx=state.raceOrder[state.currentRace];
+  const wine=state.wines[wineIdx];
+  const wineName=wine.name||'Vin '+(wineIdx+1);
+  state.results.push({wineName,ticket,isWildcard:type==='wildcard'});
+  updateScoreboard();
+  playWinnerFanfare();
+  playCrowdCheer(1.8);           // stor jubel
+  setTimeout(()=>playCrowdCheer(1.0),800);  // ekko av jubel
+  spawnConfetti();
+  addFeed('🎉 VINNER: '+ticket+' tar med seg '+wineName+'!','winner');
+  setTimeout(()=>say(pickLine(COMMENTARY.winner(ticket,wineName)),true),800);
+  document.getElementById('winner-wine-name').textContent=wineName;
+  document.getElementById('winner-ticket-display').textContent=ticket;
+  document.getElementById('winner-horse-info').textContent=type==='wildcard'?'🎲 Trukket fra Wildcard-hestens farge':'🏇 Direkte loddnummer';
+  document.getElementById('winner-trophy').textContent=state.currentRace===state.raceOrder.length-1?'🥇':'🍷';
+  document.getElementById('winner-overlay').classList.add('show');
+  document.getElementById('btn-next-race').style.display='inline-block';
+}
+
+function closeWinner(){
+  const ov=document.getElementById('winner-overlay');
+  ov.classList.remove('show');
+  // Also force-hide draw-tickets overlay in case it's lingering
+  document.getElementById('draw-tickets-overlay').classList.remove('show');
+}
+function nextRace(){
+  state.currentRace++;
+  closeWinner();
+  if(state.currentRace>=state.raceOrder.length){showFinalResults();return;}
+  // Small delay so winner overlay fade-out completes before draw overlay appears
+  setTimeout(()=>setupRace(), 500);
+}
+function showFinalResults(){fbClearRace();say('Og det var siste løp i kveld! Takk for en fantastisk kveld!',true);updatePhase('🎉 Alle vinnere er trukket! Takk for i kveld!');document.getElementById('btn-start-race').style.display='none';document.getElementById('btn-next-race').style.display='none';toggleScoreboard();playFanfare();playCrowdCheer();spawnConfetti(80);addFeed('🎊 Kvelden er over! Takk for i kveld alle sammen!','winner');}
+
+// LIVE FEED
+function addFeed(text,type){type=type||'normal';const scroll=document.getElementById('feed-scroll');const now=new Date();const time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');const item=document.createElement('div');item.className='feed-item '+type;item.innerHTML='<div class="feed-time">'+time+'</div>'+text;scroll.appendChild(item);requestAnimationFrame(()=>{scroll.scrollTop=scroll.scrollHeight;});while(scroll.children.length>80)scroll.removeChild(scroll.firstChild);}
+function clearFeed(){document.getElementById('feed-scroll').innerHTML='';}
+
+// UI
+function updatePhase(text){document.getElementById('phase-text').textContent=text;}
+function toggleScoreboard(){document.getElementById('scoreboard').classList.toggle('open');}
+function updateScoreboard(){document.getElementById('sb-results').innerHTML=state.results.map((r,i)=>`<div class="sb-item"><span class="sb-wine">${i+1}. ${r.wineName}</span><span class="sb-ticket">${r.ticket}</span></div>`).join('');}
+function spawnConfetti(count){count=count||50;const colors=['#FFD700','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#FF9FF3'];for(let i=0;i<count;i++)setTimeout(()=>{const el=document.createElement('div');el.className='confetti';el.style.left=Math.random()*100+'vw';el.style.width=(7+Math.random()*9)+'px';el.style.height=(7+Math.random()*9)+'px';el.style.background=colors[Math.floor(Math.random()*colors.length)];el.style.borderRadius=Math.random()>.5?'50%':'0';const dur=2+Math.random()*3;el.style.animation='confettiFall '+dur+'s linear forwards';document.body.appendChild(el);setTimeout(()=>el.remove(),dur*1000+100);},i*35);}
+
+// INIT
+(function(){
+  updateSettingLabel('speed',3);updateSettingLabel('duration',40);
+  updateSettingLabel('chaos',2);updateSettingLabel('horses',4);
+  updateSettingLabel('vol-hooves',70);updateSettingLabel('vol-cheer',80);updateSettingLabel('vol-fx',80);updateSettingLabel('vol-voice',0);
+  addBlock('S','Grønn',100);addBlock('M','Blå',100);
+  addBlock('L','Gul',100);addBlock('R','Rosa',100);
+  addBlock('S','Hvit',100);
+  for(let i=1;i<=14;i++)addWine(i<=3?'Vin '+i+' (billig)':i>=12?'Vin '+i+' (best)':'Vin '+i);
+})();
+</script>
+
+<!-- Loddtrekning overlay -->
+<div id="draw-tickets-overlay">
+  <div class="dt-title">🎫 TREKKER LODDNUMRE</div>
+  <div class="dt-subtitle">HVEM FÅR HVILKE LODD?</div>
+  <div class="dt-horses" id="dt-horses"></div>
+  <button class="dt-start-btn" id="dt-start-btn" onclick="closeDrawTickets()">🏁 START LØP</button>
+</div>
+
+</body>
+</html>
