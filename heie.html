@@ -20,22 +20,22 @@
 
   .horse-btn{
     display:flex;align-items:center;gap:16px;
-    background:rgba(255,255,255,.05);
-    border:2px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.11);
+    border:2px solid rgba(255,255,255,.28);
     border-radius:16px;padding:16px 20px;
     cursor:pointer;transition:all .15s;
     width:100%;text-align:left;
     -webkit-user-select:none;user-select:none;
   }
   .horse-btn:active{transform:scale(0.96);}
-  .horse-btn.cheered{border-color:var(--gold);background:rgba(255,215,0,.1);}
+  .horse-btn.cheered{border-color:var(--gold);background:rgba(255,215,0,.15);box-shadow:0 0 16px rgba(255,215,0,.2);}
   .horse-btn.cheered .hb-name{color:var(--gold);}
 
-  .hb-bubble{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;border:2px solid;}
+  .hb-bubble{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;border:3px solid;}
   .hb-info{flex:1;}
-  .hb-name{font-family:'Bebas Neue',cursive;font-size:1.5rem;letter-spacing:2px;display:block;}
-  .hb-ticket{font-size:.85rem;color:rgba(255,255,255,.45);letter-spacing:1px;display:block;margin-top:1px;}
-  .hb-cheers{font-family:'Bebas Neue',cursive;font-size:1.4rem;color:rgba(255,255,255,.3);letter-spacing:1px;flex-shrink:0;min-width:40px;text-align:right;}
+  .hb-name{font-family:'Bebas Neue',cursive;font-size:1.5rem;letter-spacing:2px;display:block;color:white;}
+  .hb-ticket{font-size:.9rem;color:rgba(255,255,255,.7);letter-spacing:1px;display:block;margin-top:2px;}
+  .hb-cheers{font-family:'Bebas Neue',cursive;font-size:1.4rem;color:rgba(255,255,255,.5);letter-spacing:1px;flex-shrink:0;min-width:40px;text-align:right;}
   .hb-cheers.active{color:var(--gold);}
 
   .cheer-pop{
@@ -133,7 +133,7 @@ function renderHorses() {
     const bubbleBg = `radial-gradient(circle at 40% 40%, ${h.colorHex}cc, ${h.colorHex}44)`;
 
     btn.innerHTML = `
-      <div class="hb-bubble" style="background:${bubbleBg};border-color:${h.colorHex};">
+      <div class="hb-bubble" style="background:${bubbleBg};border-color:${h.colorHex};border-width:3px;">
         <span>${h.emoji}</span>
       </div>
       <div class="hb-info">
