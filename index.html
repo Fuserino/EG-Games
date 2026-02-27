@@ -384,21 +384,46 @@ let _cheerCounts = {};
 
 // Publish current horses to Firebase so heie.html can read them
 function fbPublishHorses(horses){
-  const data = horses.map(h=>({
+  // Reset race state – heie.html shows "trekning pågår"
+  firebase.database().ref('currentRace').set({
+    status: 'drawing',
+    horses: null,
+    revealed: null,
+    cheers: null,
+    winner: null
+  });
+  _cheerCounts = {};
+  updateCheerBar();
+  // Store horse data locally for incremental reveal
+  _fbHorses = horses.map(h=>({
     name: h.name,
     emoji: h.emoji,
     ticket: h.ticket,
     colorHex: h.colorObj.hex
   }));
-  firebase.database().ref('currentRace/horses').set(data);
-  firebase.database().ref('currentRace/cheers').set(null);
-  _cheerCounts = {};
-  updateCheerBar();
 }
 
-// Clear Firebase when race ends
+let _fbHorses = [];
+
+// Called after each horse is drawn – reveals it in heie.html one by one
+function fbRevealHorse(idx){
+  firebase.database().ref('currentRace/horses/'+idx).set(_fbHorses[idx]);
+}
+
+// Called when all horses drawn and race is about to start
+function fbSetRaceRunning(){
+  firebase.database().ref('currentRace/status').set('running');
+}
+
+// Called when a winner is decided
+function fbSetRaceFinished(winnerName, winnerTicket){
+  firebase.database().ref('currentRace/status').set('finished');
+  firebase.database().ref('currentRace/winner').set({name: winnerName, ticket: winnerTicket});
+}
+
+// Clear Firebase when all races done
 function fbClearRace(){
-  firebase.database().ref('currentRace').set(null);
+  firebase.database().ref('currentRace').set({status:'idle'});
   _cheerCounts = {};
   updateCheerBar();
 }
@@ -1068,6 +1093,8 @@ function animateSlot(horse, idx, onDone){
       // Update the lane label too
       const laneTicket=document.querySelector('#lane-'+horse.idx+' .lane-ticket');
       if(laneTicket) laneTicket.textContent=isWild?'🎲 ALLE':horse.ticket;
+      // Reveal this horse in heie.html
+      fbRevealHorse(horse.idx);
       setTimeout(onDone,200);
     }
   },rollInterval);
@@ -1104,6 +1131,7 @@ function startRace(){
         playCountdownBeep(true);
         playCrowdCheer(1.2);
         say(pickLine(COMMENTARY.start),true);
+        fbSetRaceRunning();
         setTimeout(runRace,200);
       }
     },900);
@@ -1391,6 +1419,7 @@ function showWinner(ticket,type){
   setTimeout(()=>playCrowdCheer(1.0),800);  // ekko av jubel
   spawnConfetti();
   addFeed('🎉 VINNER: '+ticket+' tar med seg '+wineName+'!','winner');
+  fbSetRaceFinished(ticket, wineName);
   setTimeout(()=>say(pickLine(COMMENTARY.winner(ticket,wineName)),true),800);
   document.getElementById('winner-wine-name').textContent=wineName;
   document.getElementById('winner-ticket-display').textContent=ticket;
