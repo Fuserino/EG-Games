@@ -392,7 +392,6 @@ function fbPublishHorses(horses){
   }));
   firebase.database().ref('currentRace/horses').set(data);
   firebase.database().ref('currentRace/cheers').set(null);
-  firebase.database().ref('currentRace/boostQueue').set(null);
   _cheerCounts = {};
   updateCheerBar();
 }
@@ -404,37 +403,45 @@ function fbClearRace(){
   updateCheerBar();
 }
 
-// Listen for boost events from heie.html
+// Boost lookup: cheerers → speed bonus (capped at +30%)
+function cheerBoost(count){
+  if(!count||count<=0) return 0;
+  if(count<=2)  return 0.05;
+  if(count<=5)  return 0.12;
+  if(count<=10) return 0.20;
+  return 0.30; // max regardless of crowd size
+}
+
+// Listen for cheer counts – drives continuous boost in race tick
 function fbListenBoosts(){
-  // Detach previous listeners
-  firebase.database().ref('currentRace/boostQueue').off();
   firebase.database().ref('currentRace/cheers').off();
-
-  firebase.database().ref('currentRace/boostQueue').on('child_added', (snap)=>{
-    const data = snap.val();
-    if(!data) return;
-    const h = state.horses[data.horseIdx];
-    if(h && state.racePhase==='running'){
-      h.speedMult = Math.min((h.speedMult||1) + 0.18, 3.5);
-      setTimeout(()=>{ if(h.speedMult>1.0) h.speedMult=Math.max(1.0,h.speedMult-0.15); },1800);
-      showCheerToast(h.name);
-      flashLane(data.horseIdx,'boost');
-      spawnFloater(data.horseIdx,'🔥');
-    }
-    snap.ref.remove();
-  });
-
   firebase.database().ref('currentRace/cheers').on('value', (snap)=>{
+    const prev = JSON.stringify(_cheerCounts);
     _cheerCounts = snap.val() || {};
     updateCheerBar();
+    // Show toast if any horse got a new cheerer during the race
+    if(state.racePhase==='running' && prev !== JSON.stringify(_cheerCounts)){
+      const prevObj = JSON.parse(prev);
+      state.horses.forEach((h,i)=>{
+        const now = _cheerCounts[i]||0;
+        const was = prevObj[i]||0;
+        if(now>was){
+          showCheerToast(h.name, now);
+          flashLane(i,'boost');
+          spawnFloater(i,'🔥');
+        }
+      });
+    }
   });
 }
 
-function showCheerToast(horseName){
+function showCheerToast(horseName, count){
   const t = document.getElementById('cheer-toast');
-  t.textContent = '🔥 ' + horseName.toUpperCase() + ' FÅR STØTTE!';
+  const countTxt = count>1 ? ' ('+count+' 🔥)' : '';
+  t.textContent = '🔥 ' + horseName.toUpperCase() + ' FÅR STØTTE!' + countTxt;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(()=>t.classList.remove('show'), 2500);
 }
 
 function updateCheerBar(){
@@ -1124,7 +1131,9 @@ function runRace(){
     for(let i=0;i<state.horses.length;i++){
       if(state.positions[i]>=1)continue; // already fully past finish, skip
       const h=state.horses[i];
-      const delta=basePerHorse[i]*h.speedMult*(1-variance/2+Math.random()*variance);
+      const cheer=cheerBoost(_cheerCounts[i]||0);
+      const totalMult=h.speedMult*(1+cheer);
+      const delta=basePerHorse[i]*totalMult*(1-variance/2+Math.random()*variance);
       state.positions[i]=Math.max(0,state.positions[i]+delta);
       if(state.positions[i]>=finishThreshold && state.winner===-1){
         state.winner=i;
