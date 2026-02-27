@@ -378,6 +378,14 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
         <span class="setting-val" id="lbl-vol-fx">80%</span>
       </div>
       <div class="setting-item">
+        <label>📣 Heie-modus</label>
+        <select id="set-cheer-mode" onchange="updateSettingLabel('cheer-mode',this.value)" style="background:rgba(0,0,0,.4);border:1px solid rgba(255,215,0,.3);color:var(--cream);padding:5px 9px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:1rem;width:100%;accent-color:var(--gold);">
+          <option value="vote">🗳️ Én stemme per person</option>
+          <option value="spam">🔥 Trykk for fart (spam)</option>
+        </select>
+        <span class="setting-val" id="lbl-cheer-mode">Én stemme</span>
+      </div>
+      <div class="setting-item">
         <label>🎙️ Kommentator</label>
         <input type="range" id="set-vol-voice" min="0" max="100" step="10" value="0" oninput="updateSettingLabel('vol-voice',this.value)">
         <span class="setting-val" id="lbl-vol-voice">80%</span>
@@ -490,6 +498,7 @@ function fbPublishHorses(horses){
   // Reset race state – heie.html shows "trekning pågår"
   firebase.database().ref('currentRace').set({
     status: 'drawing',
+    cheerMode: state.settings.cheerMode,
     viewers: null,
     horses: null,
     revealed: null,
@@ -535,10 +544,16 @@ function fbClearRace(){
 // Boost lookup: cheerers → speed bonus (capped at +30%)
 function cheerBoost(count){
   if(!count||count<=0) return 0;
+  if(state.settings.cheerMode==='spam'){
+    // Spam mode: count = accumulated tap points, decay handled in tick
+    // Scale: each point = small boost, capped at 40%
+    return Math.min(0.40, count * 0.004);
+  }
+  // Vote mode: count = number of people cheering
   if(count<=2)  return 0.05;
   if(count<=5)  return 0.12;
   if(count<=10) return 0.20;
-  return 0.30; // max regardless of crowd size
+  return 0.30;
 }
 
 // Listen for cheer counts – drives continuous boost in race tick
@@ -825,7 +840,7 @@ function pickWeightedEvent(){
   for(const e of CHAOS_EVENTS){r-=e.weight;if(r<=0)return e;}
   return CHAOS_EVENTS[0];
 }
-let state={blocks:[],wines:[],currentRace:0,raceOrder:[],results:[],racePhase:'idle',horses:[],positions:[],winner:-1,eventActive:false,usedTickets:{},settings:{speed:3,duration:40,chaos:2,numHorses:4,volHooves:0.7,volCheer:0.8,volFx:0.8,volVoice:0}};
+let state={blocks:[],wines:[],currentRace:0,raceOrder:[],results:[],racePhase:'idle',horses:[],positions:[],winner:-1,eventActive:false,usedTickets:{},settings:{speed:3,duration:40,chaos:2,numHorses:4,volHooves:0.7,volCheer:0.8,volFx:0.8,volVoice:0,cheerMode:'vote'}};
 
 // ══════════════════════════════════════════════════════
 // AUDIO ENGINE – veddeløp med ekte publikum og hester
@@ -1290,6 +1305,7 @@ function updateSettingLabel(key,val){
   if(key==='vol-cheer'){state.settings.volCheer=val/100;document.getElementById('lbl-vol-cheer').textContent=(val===0?'Av':val+'%');}
   if(key==='vol-fx'){state.settings.volFx=val/100;document.getElementById('lbl-vol-fx').textContent=(val===0?'Av':val+'%');}
   if(key==='vol-voice'){state.settings.volVoice=val/100;document.getElementById('lbl-vol-voice').textContent=(val===0?'Av':val+'%');}
+  if(key==='cheer-mode'){state.settings.cheerMode=val;document.getElementById('lbl-cheer-mode').textContent=(val==='spam'?'Trykk-modus':'Én stemme');}
 }
 
 // BLOCKS
@@ -1535,6 +1551,20 @@ function startRace(){
 function runRace(){
   state.racePhase='running';
   gallopLoop();
+  // Spam mode: decay cheer points gradually so sustained tapping is required
+  if(state.settings.cheerMode==='spam'){
+    const decayInterval=setInterval(()=>{
+      if(state.racePhase!=='running'){clearInterval(decayInterval);return;}
+      const keys=Object.keys(_cheerCounts);
+      if(!keys.length) return;
+      const updates={};
+      keys.forEach(k=>{
+        const v=(_cheerCounts[k]||0);
+        if(v>0) updates[k]=Math.max(0,v-3); // decay 3 points per 500ms
+      });
+      firebase.database().ref('currentRace/cheers').update(updates);
+    },500);
+  }
   const fps=60;
   const targetSecs=state.settings.duration;
   const settingsMult=[0.5,0.75,1.0,1.4,2.2][state.settings.speed-1];
@@ -1897,7 +1927,7 @@ function spawnConfetti(count){count=count||50;const colors=['#FFD700','#FF6B6B',
 (function(){
   updateSettingLabel('speed',3);updateSettingLabel('duration',40);
   updateSettingLabel('chaos',2);updateSettingLabel('horses',4);
-  updateSettingLabel('vol-hooves',70);updateSettingLabel('vol-cheer',80);updateSettingLabel('vol-fx',80);updateSettingLabel('vol-voice',0);
+  updateSettingLabel('vol-hooves',70);updateSettingLabel('vol-cheer',80);updateSettingLabel('vol-fx',80);updateSettingLabel('vol-voice',0);updateSettingLabel('cheer-mode','vote');
   addBlock('S','Grønn',100);addBlock('M','Blå',100);
   addBlock('L','Gul',100);addBlock('R','Rosa',100);
   addBlock('S','Hvit',100);
