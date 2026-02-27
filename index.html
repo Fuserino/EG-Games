@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🏇 Vinlotteri – Hesteveddeløp</title>
-<script type="module">
-// Firebase loaded as module – see bottom of file
-</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,700&display=swap');
 :root { --gold:#FFD700; --gold-dark:#b8960a; --cream:#FFF8E7; --dark:#1a0f00; }
@@ -365,10 +362,10 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
   <div id="sb-results"></div>
 </div>
 
-<script type="module">
-// ── Firebase ──
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, remove, onValue, onChildAdded, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<!-- Firebase compat (no module needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
 
 const _fbConfig = {
   apiKey: "AIzaSyBf2y5UvDRCcw3tlLiX6D2-Kpm5QygyXN4",
@@ -379,8 +376,8 @@ const _fbConfig = {
   messagingSenderId: "706613204445",
   appId: "1:706613204445:web:3f754ac728cd46f0281234"
 };
-const _fbApp = initializeApp(_fbConfig);
-const _db = getDatabase(_fbApp);
+const _fbApp = firebase.initializeApp(_fbConfig);
+const _db = firebase.database();
 let _boostListener = null;
 let _cheerListener = null;
 let _cheerCounts = {};
@@ -393,24 +390,27 @@ function fbPublishHorses(horses){
     ticket: h.ticket,
     colorHex: h.colorObj.hex
   }));
-  set(ref(_db,'currentRace/horses'), data);
-  set(ref(_db,'currentRace/cheers'), null);
-  set(ref(_db,'currentRace/boostQueue'), null);
+  firebase.database().ref('currentRace/horses').set(data);
+  firebase.database().ref('currentRace/cheers').set(null);
+  firebase.database().ref('currentRace/boostQueue').set(null);
   _cheerCounts = {};
   updateCheerBar();
 }
 
 // Clear Firebase when race ends
 function fbClearRace(){
-  set(ref(_db,'currentRace'), null);
+  firebase.database().ref('currentRace').set(null);
   _cheerCounts = {};
   updateCheerBar();
 }
 
 // Listen for boost events from heie.html
 function fbListenBoosts(){
-  if(_boostListener){ off(ref(_db,'currentRace/boostQueue'), 'child_added', _boostListener); }
-  _boostListener = onChildAdded(ref(_db,'currentRace/boostQueue'), (snap)=>{
+  // Detach previous listeners
+  firebase.database().ref('currentRace/boostQueue').off();
+  firebase.database().ref('currentRace/cheers').off();
+
+  firebase.database().ref('currentRace/boostQueue').on('child_added', (snap)=>{
     const data = snap.val();
     if(!data) return;
     const h = state.horses[data.horseIdx];
@@ -421,13 +421,10 @@ function fbListenBoosts(){
       flashLane(data.horseIdx,'boost');
       spawnFloater(data.horseIdx,'🔥');
     }
-    // Remove processed boost
-    remove(snap.ref);
+    snap.ref.remove();
   });
 
-  // Listen for cheer counts (display)
-  if(_cheerListener){ off(ref(_db,'currentRace/cheers'), 'value', _cheerListener); }
-  _cheerListener = onValue(ref(_db,'currentRace/cheers'), (snap)=>{
+  firebase.database().ref('currentRace/cheers').on('value', (snap)=>{
     _cheerCounts = snap.val() || {};
     updateCheerBar();
   });
@@ -1419,23 +1416,6 @@ function toggleScoreboard(){document.getElementById('scoreboard').classList.togg
 function updateScoreboard(){document.getElementById('sb-results').innerHTML=state.results.map((r,i)=>`<div class="sb-item"><span class="sb-wine">${i+1}. ${r.wineName}</span><span class="sb-ticket">${r.ticket}</span></div>`).join('');}
 function spawnConfetti(count){count=count||50;const colors=['#FFD700','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#FF9FF3'];for(let i=0;i<count;i++)setTimeout(()=>{const el=document.createElement('div');el.className='confetti';el.style.left=Math.random()*100+'vw';el.style.width=(7+Math.random()*9)+'px';el.style.height=(7+Math.random()*9)+'px';el.style.background=colors[Math.floor(Math.random()*colors.length)];el.style.borderRadius=Math.random()>.5?'50%':'0';const dur=2+Math.random()*3;el.style.animation='confettiFall '+dur+'s linear forwards';document.body.appendChild(el);setTimeout(()=>el.remove(),dur*1000+100);},i*35);}
 
-
-// ── Expose functions to global scope (required for onclick in module script) ──
-window.startShow = startShow;
-window.goToSetup = goToSetup;
-window.addBlock = addBlock;
-window.removeBlock = removeBlock;
-window.updateBlock = updateBlock;
-window.addWine = addWine;
-window.removeWine = removeWine;
-window.updateWine = updateWine;
-window.updateSettingLabel = updateSettingLabel;
-window.startRace = startRace;
-window.nextRace = nextRace;
-window.closeWinner = closeWinner;
-window.toggleScoreboard = toggleScoreboard;
-window.toggleQR = toggleQR;
-window.closeDrawTickets = closeDrawTickets;
 
 // INIT
 (function(){
