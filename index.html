@@ -63,17 +63,17 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
 .lane-color-badge{width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:1.1rem;color:white;text-shadow:0 1px 3px rgba(0,0,0,.8);box-shadow:0 2px 12px rgba(0,0,0,.5);}
 .lane-ticket{font-family:'Bebas Neue',cursive;font-size:.85rem;color:rgba(255,255,255,.9);text-align:center;letter-spacing:1px;font-weight:700;line-height:1.1;}
 .horse-wrapper{position:absolute;left:130px;top:50%;transform:translateY(-50%);z-index:10;display:flex;align-items:center;gap:4px;pointer-events:none;}
-.horse-emoji{font-size:3rem;filter:drop-shadow(2px 2px 4px rgba(0,0,0,.6));display:block;}
+.horse-emoji{font-size:3rem;filter:drop-shadow(2px 2px 4px rgba(0,0,0,.6));display:block;transform:scaleX(-1);}
 
 .horse-bubble{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
 .cheer-badge{position:absolute;top:-8px;right:-10px;background:rgba(255,80,0,.92);border:1.5px solid #ffcc00;border-radius:10px;padding:1px 5px;font-family:'Bebas Neue',cursive;font-size:.75rem;color:white;letter-spacing:.5px;white-space:nowrap;pointer-events:none;z-index:30;animation:cheerBadgePop .3s cubic-bezier(.34,1.56,.64,1);}
 @keyframes cheerBadgePop{from{transform:scale(0);}to{transform:scale(1);}}
 .horse-running .horse-emoji{animation:gallop .28s steps(2) infinite;}
-.horse-reversed .horse-emoji{transform:scaleX(-1);}
+.horse-reversed .horse-emoji{transform:scaleX(1);}
 .horse-reversed.horse-running .horse-emoji{animation:gallopReverse .28s steps(2) infinite;}
-@keyframes gallopReverse{0%{transform:scaleX(-1) translateY(0) rotate(2deg);}50%{transform:scaleX(-1) translateY(-4px) rotate(-2deg);}100%{transform:scaleX(-1) translateY(0) rotate(2deg);}}
+@keyframes gallopReverse{0%{transform:scaleX(1) translateY(0) rotate(2deg);}50%{transform:scaleX(1) translateY(-4px) rotate(-2deg);}100%{transform:scaleX(1) translateY(0) rotate(2deg);}}
 
-@keyframes gallop{0%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-4px) rotate(2deg);}100%{transform:translateY(0) rotate(-2deg);}}
+@keyframes gallop{0%{transform:scaleX(-1) translateY(0) rotate(-2deg);}50%{transform:scaleX(-1) translateY(-4px) rotate(2deg);}100%{transform:scaleX(-1) translateY(0) rotate(-2deg);}}
 /* horse-ticket-badge removed – ticket now in lane label */
 .horse-status-badge{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.88);border:1px solid rgba(255,200,0,.7);border-radius:12px;padding:2px 8px;font-size:.72rem;white-space:nowrap;font-weight:700;letter-spacing:.5px;pointer-events:none;z-index:20;animation:statusPop .3s cubic-bezier(.34,1.56,.64,1);}
 @keyframes statusPop{from{transform:translateX(-50%) scale(.3);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
