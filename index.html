@@ -116,6 +116,23 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
 .horse-bubble.boosted-3{box-shadow:0 0 22px 7px rgba(255,80,0,.9)!important;animation:boostPulse .5s ease-in-out infinite alternate;}
 @keyframes boostPulse{from{filter:brightness(1.1);}to{filter:brightness(1.35);}}
 
+
+/* Selfie popup */
+.selfie-popup{
+  position:fixed;z-index:350;pointer-events:none;
+  background:#111;border:3px solid white;border-radius:8px;
+  overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.8);
+  animation:selfieIn .25s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes selfieIn{from{transform:scale(0) rotate(-8deg);opacity:0;}to{transform:scale(1) rotate(-4deg);opacity:1;}}
+.selfie-popup.out{animation:selfieOut .3s ease-in forwards;}
+@keyframes selfieOut{to{transform:scale(0.7) rotate(5deg);opacity:0;}}
+.selfie-inner{width:120px;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:linear-gradient(135deg,#1a1a2e,#16213e);}
+.selfie-emoji-row{font-size:2.6rem;}
+.selfie-flash{position:absolute;inset:0;background:white;opacity:0;animation:flashPop .15s ease-out .05s forwards;}
+@keyframes flashPop{0%{opacity:0.9;}100%{opacity:0;}}
+.selfie-caption{font-family:'Bebas Neue',cursive;font-size:.65rem;color:rgba(255,255,255,.6);letter-spacing:1px;padding-bottom:4px;}
+
 /* Screen shake */
 @keyframes shake{0%,100%{transform:translateX(0) translateY(0);}10%{transform:translateX(-8px) translateY(3px);}20%{transform:translateX(8px) translateY(-3px);}30%{transform:translateX(-6px) translateY(5px);}40%{transform:translateX(6px) translateY(-5px);}50%{transform:translateX(-4px) translateY(3px);}60%{transform:translateX(4px) translateY(-3px);}70%{transform:translateX(-3px) translateY(2px);}80%{transform:translateX(3px) translateY(-2px);}90%{transform:translateX(-1px) translateY(1px);}}
 .shaking{animation:shake .5s ease-out;}
@@ -699,6 +716,106 @@ const CHAOS_EVENTS=[
   {id:'magnet',emoji:'🧲',text:(h)=>`🧲 En mystisk magnet trekker ${h} bakover mot start!`,apply:(horse)=>{horse.speedMult=-1.8;horse.status='🧲 Magnet!';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'🧲');setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},1800);},weight:6},
   {id:'meteor',emoji:'☄️',text:(h)=>`☄️ En meteor slår ned rett foran ${h} – total panikk!`,apply:(horse)=>{horse.speedMult=-2.5;horse.status='☄️ METEOR!';setHorseEffect(horse,'effect-bad');spawnFloater(horse.idx,'☄️');screenShake(400);chaosFlash('#ff6600',300);setTimeout(()=>{horse.speedMult=1.5;horse.status=null;clearHorseEffect(horse);},2200);},weight:4},
   {id:'blackhole',emoji:'🌀',text:(h)=>`🌀 Et sort hull åpner seg under ${h}! De forsvinner i 4 sekunder!`,apply:(horse)=>{const savedPos=state.positions[horse.idx];horse.speedMult=0;horse.status='🌀 Forsvunnet!';setHorseEffect(horse,'effect-invisible');spawnFloater(horse.idx,'🌀');say(pickLine(COMMENTARY.blackhole(horse.name)));setTimeout(()=>{state.positions[horse.idx]=Math.max(0,savedPos-0.08);horse.speedMult=2.0;horse.status='🌀 Tilbake!';clearHorseEffect(horse);addFeed(`${horse.name} dukker opp igjen – men litt bak!`,'event');setTimeout(()=>{horse.speedMult=1.0;horse.status=null;},1500);},4000);},weight:4},
+
+  // ── BANALE HENDELSER ──
+  {id:'graze',emoji:'🌿',text:(h)=>`🌿 ${h} vandrer ut av banen og begynner å gresse rolig i gresset!`,apply:(horse)=>{
+    horse.speedMult=0;horse.status='🌿 Beiter...';setHorseEffect(horse,'effect-frozen');
+    spawnFloater(horse.idx,'🌿');spawnGrazing(horse);
+    spawnEventBanner('🌿','BEITER I GRESSET!','#88dd44');
+    const d=3000+Math.random()*2000;
+    setTimeout(()=>{horse.speedMult=1.1;horse.status=null;clearHorseEffect(horse);
+      addFeed(`${horse.name} er ferdig med å beite og er tilbake i løpet!`,'normal');},d);
+  },weight:9},
+
+  {id:'selfie',emoji:'🤳',text:(h)=>`🤳 ${h} stopper opp for å ta en selfie! Sier "vent litt, lyset er perfekt her"`,apply:(horse)=>{
+    horse.speedMult=0;horse.status='🤳 Tar selfie!';setHorseEffect(horse,'effect-phone');
+    spawnSelfie(horse);spawnFloater(horse.idx,'📸');
+    spawnEventBanner('🤳','SELFIE TID!','#ff88cc');
+    setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},3000);
+  },weight:9},
+
+  {id:'sneeze',emoji:'🤧',text:(h)=>`🤧 ${h} får et voldsomt nyseanfall og stopper helt opp!`,apply:(horse)=>{
+    horse.speedMult=0.1;horse.status='🤧 Nys nys nys!';setHorseEffect(horse,'effect-bad');
+    spawnFloater(horse.idx,'🤧');
+    const d=1500+Math.random()*1000;
+    setTimeout(()=>{horse.speedMult=1.2;horse.status=null;clearHorseEffect(horse);},d);
+  },weight:10},
+
+  {id:'itch',emoji:'🦟',text:(h)=>`🦟 ${h} får en klåe og stopper for å klø seg skikkelig. Ahhh, der ja!`,apply:(horse)=>{
+    horse.speedMult=0;horse.status='🦟 Klør seg';setHorseEffect(horse,'effect-bad');
+    spawnFloater(horse.idx,'🦟');
+    setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2200);
+  },weight:9},
+
+  {id:'yawn',emoji:'🥱',text:(h)=>`🥱 ${h} gjesper enormt og ser ut som de helst vil ta en lur...`,apply:(horse)=>{
+    horse.speedMult=0.3;horse.status='🥱 Kjempetrett';setHorseEffect(horse,'effect-frozen');
+    spawnFloater(horse.idx,'🥱');
+    setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2800);
+  },weight:9},
+
+  {id:'snack',emoji:'🍎',text:(h)=>`🍎 En tilskuer rekker over en eple til ${h}. De stopper og tygger det grundig.`,apply:(horse)=>{
+    horse.speedMult=0;horse.status='🍎 Spiser eple';setHorseEffect(horse,'effect-frozen');
+    spawnFloater(horse.idx,'🍎');spawnEventBanner('🍎','EPLEPAUSE!','#ffaa33');
+    setTimeout(()=>{horse.speedMult=1.4;horse.status=null;clearHorseEffect(horse);
+      addFeed(`${horse.name} er ferdig med eplet og galopperer videre med fornyet energi!`,'normal');},3500);
+  },weight:8},
+
+  {id:'distracted',emoji:'🦋',text:(h)=>`🦋 En sommerfugl flakser forbi og ${h} følger nysgjerrig etter den...`,apply:(horse)=>{
+    horse.speedMult=-0.4;horse.status='🦋 Distrahert';setHorseEffect(horse,'effect-bad');
+    spawnFloater(horse.idx,'🦋');
+    setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2500);
+  },weight:9},
+
+  {id:'stumbleflat',emoji:'😩',text:(h)=>`😩 ${h} snubler over sine egne bein og faller flat ned i gresset!`,apply:(horse)=>{
+    horse.speedMult=0;horse.status='😩 Falt ned!';setHorseEffect(horse,'effect-bad');
+    spawnFloater(horse.idx,'💥');screenShake(300);
+    setTimeout(()=>{horse.speedMult=0.9;horse.status=null;clearHorseEffect(horse);
+      addFeed(`${horse.name} er heldigvis ikke skadet og reiser seg.`,'normal');},3000);
+  },weight:8},
+
+  {id:'hello',emoji:'👋',text:(h)=>`👋 ${h} oppdager noen de kjenner i publikum og stopper for å si hei!`,apply:(horse)=>{
+    horse.speedMult=0;horse.status='👋 Sier hei!';setHorseEffect(horse,'effect-phone');
+    spawnFloater(horse.idx,'👋');spawnEventBanner('👋','SOSIAL PAUSE!','#44aaff');
+    setTimeout(()=>{horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);},2600);
+  },weight:9},
+
+  {id:'hiccup',emoji:'😮‍💨',text:(h)=>`😮‍💨 ${h} får hikke og mister rytmen fullstendig. Hik. Hik. HIK.`,apply:(horse)=>{
+    // Alternating speed from hiccups
+    horse.speedMult=0.2;horse.status='😮‍💨 Hikke!';setHorseEffect(horse,'effect-bad');
+    spawnFloater(horse.idx,'😮‍💨');
+    let hics=0;
+    const hicInterval=setInterval(()=>{
+      hics++;
+      horse.speedMult=hics%2===0?0.1:1.6;
+      if(hics>=6){clearInterval(hicInterval);horse.speedMult=1.0;horse.status=null;clearHorseEffect(horse);}
+    },500);
+  },weight:7},
+
+  {id:'lostshoe',emoji:'👞',text:(h)=>`👞 ${h} mister en sko og må stoppe for å lete etter den!`,apply:(horse)=>{
+    horse.speedMult=0;horse.status='👞 Mistet sko!';setHorseEffect(horse,'effect-bad');
+    spawnFloater(horse.idx,'👞');spawnEventBanner('👞','MISTET SKOEN!','#cc8844');
+    const d=2500+Math.random()*1500;
+    setTimeout(()=>{horse.speedMult=1.2;horse.status=null;clearHorseEffect(horse);
+      addFeed(`${horse.name} fant skoen og er tilbake!`,'normal');},d);
+  },weight:8},
+
+  {id:'confused',emoji:'😵‍💫',text:(h)=>`😵‍💫 ${h} ser seg rundt og er totalt forvirret – hvilken vei er det mål igjen?`,apply:(horse)=>{
+    horse.speedMult=-1.0;horse.status='😵‍💫 Forvirret!';setHorseEffect(horse,'effect-bad');
+    spawnFloater(horse.idx,'😵‍💫');
+    setTimeout(()=>{
+      horse.speedMult=2.0;horse.status='💡 Skjønte det!';clearHorseEffect(horse);
+      setTimeout(()=>{horse.speedMult=1.0;horse.status=null;},1500);
+    },2000);
+  },weight:7},
+
+  {id:'chill',emoji:'😎',text:(h)=>`😎 ${h} bestemmer seg for å ta det med ro. De er jo allerede her, liksom.`,apply:(horse)=>{
+    horse.speedMult=0.25;horse.status='😎 Chillin';setHorseEffect(horse,'effect-drunk');
+    spawnFloater(horse.idx,'😎');spawnEventBanner('😎','FULL CHILL MODE','#55ccaa');
+    const d=3000+Math.random()*1000;
+    setTimeout(()=>{horse.speedMult=1.5;horse.status=null;clearHorseEffect(horse);
+      addFeed(`${horse.name} innser plutselig at det faktisk er en konkurranse!`,'normal');},d);
+  },weight:8},
+
 ];
 
 
@@ -1553,6 +1670,50 @@ function clearHorseEffect(horse){
   const bubble = el.querySelector('.horse-bubble');
   if(!bubble) return;
   bubble.className = 'horse-bubble';
+}
+
+
+// Selfie popup – appears near the horse, shows emoji selfie briefly
+function spawnSelfie(horse){
+  const el = document.getElementById('horse-'+horse.idx);
+  if(!el) return;
+  const rect = el.getBoundingClientRect();
+  const popup = document.createElement('div');
+  popup.className = 'selfie-popup';
+  popup.style.left = Math.min(window.innerWidth-145, rect.left + 30) + 'px';
+  popup.style.top = Math.max(8, rect.top - 135) + 'px';
+  const selfieEmojis = ['🤳🐴','🤳🏇','🤳🦄','🤳🐎'];
+  const emoji = selfieEmojis[horse.idx % selfieEmojis.length];
+  const filters = ['#ff6b6b','#4ecdc4','#ffe66d','#a8e6cf'];
+  const filter = filters[horse.idx % filters.length];
+  popup.innerHTML = `
+    <div class="selfie-inner" style="border-top:3px solid ${filter};">
+      <div class="selfie-emoji-row">${emoji}</div>
+      <div class="selfie-caption">${horse.name.toUpperCase()}</div>
+    </div>
+    <div class="selfie-flash"></div>`;
+  document.body.appendChild(popup);
+  // Flash sound
+  playTone(1800,0.03,'sine',0.15*state.settings.volFx);
+  setTimeout(()=>{
+    popup.classList.add('out');
+    setTimeout(()=>popup.remove(), 350);
+  }, 2800);
+}
+
+// Grazing popup
+function spawnGrazing(horse){
+  const el = document.getElementById('horse-'+horse.idx);
+  if(!el) return;
+  const rect = el.getBoundingClientRect();
+  const popup = document.createElement('div');
+  popup.className = 'event-float';
+  popup.style.fontSize = '2.4rem';
+  popup.style.left = rect.left + 'px';
+  popup.style.top = rect.top + 'px';
+  popup.textContent = '🌿';
+  document.body.appendChild(popup);
+  setTimeout(()=>popup.remove(), 2000);
 }
 
 // LANE FLASH – visual highlight on event
