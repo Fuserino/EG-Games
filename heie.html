@@ -66,6 +66,29 @@
 
   .cheer-pop{position:fixed;pointer-events:none;font-size:2.2rem;animation:popUp .9s ease-out forwards;z-index:99;}
   @keyframes popUp{0%{transform:translateY(0) scale(.5);opacity:1;}60%{transform:translateY(-70px) scale(1.2);opacity:1;}100%{transform:translateY(-120px) scale(1);opacity:0;}}
+
+  /* Spam mode */
+  .spam-grid{display:flex;flex-direction:column;gap:14px;width:100%;max-width:420px;}
+  .spam-btn{
+    display:flex;align-items:center;gap:14px;
+    border-radius:16px;padding:14px 18px;
+    cursor:pointer;transition:transform .08s, filter .08s;
+    width:100%;border:2px solid;
+    -webkit-user-select:none;user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    position:relative;overflow:hidden;
+  }
+  .spam-btn:active{transform:scale(0.93);filter:brightness(1.3);}
+  .spam-bubble{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.75rem;flex-shrink:0;border:3px solid rgba(255,255,255,.4);}
+  .spam-info{flex:1;}
+  .spam-name{font-family:'Bebas Neue',cursive;font-size:1.4rem;letter-spacing:2px;display:block;color:white;}
+  .spam-ticket{font-size:.85rem;color:rgba(255,255,255,.6);letter-spacing:1px;}
+  .spam-fire{font-family:'Bebas Neue',cursive;font-size:1.5rem;color:white;flex-shrink:0;min-width:50px;text-align:right;letter-spacing:1px;}
+  .spam-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.3);pointer-events:none;transform:scale(0);animation:rippleOut .4s ease-out forwards;}
+  @keyframes rippleOut{to{transform:scale(4);opacity:0;}}
+  .spam-btn .tap-pop{position:absolute;right:16px;top:8px;font-family:'Bebas Neue',cursive;font-size:1.1rem;color:white;pointer-events:none;animation:tapPopUp .5s ease-out forwards;}
+  @keyframes tapPopUp{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(-28px);opacity:0;}}
+
 </style>
 </head>
 <body>
@@ -135,6 +158,47 @@ const myBanner = document.getElementById('my-banner');
 const myBannerText = document.getElementById('my-banner-text');
 
 let myCheer = null;
+
+let _cheerMode = 'vote'; // 'vote' or 'spam'
+let _tapCounts = {};     // local tap accumulator per horse
+let _tapFlushTimers = {}; // debounce timers per horse
+
+// Flush accumulated taps to Firebase (batched)
+function flushTaps(idx){
+  if(!_tapCounts[idx]) return;
+  const pts = _tapCounts[idx];
+  _tapCounts[idx] = 0;
+  runTransaction(ref(db, `currentRace/cheers/${idx}`), v => (v||0) + pts);
+}
+
+function tapHorse(idx, horse, btn){
+  if(raceStatus !== 'running') return;
+  _tapCounts[idx] = (_tapCounts[idx]||0) + 5; // 5 points per tap
+
+  // Update viewer color
+  updateViewerColor(horse.colorHex);
+
+  // Ripple effect
+  const r = document.createElement('div');
+  r.className = 'spam-ripple';
+  r.style.width = r.style.height = '60px';
+  r.style.left = (btn.offsetWidth/2 - 30) + 'px';
+  r.style.top = (btn.offsetHeight/2 - 30) + 'px';
+  btn.appendChild(r);
+  setTimeout(()=>r.remove(), 450);
+
+  // Tap counter pop
+  const pop = document.createElement('div');
+  pop.className = 'tap-pop';
+  pop.textContent = '+1';
+  btn.appendChild(pop);
+  setTimeout(()=>pop.remove(), 520);
+
+  // Flush after 500ms of no tapping (batching)
+  clearTimeout(_tapFlushTimers[idx]);
+  _tapFlushTimers[idx] = setTimeout(()=>flushTaps(idx), 500);
+}
+
 let raceStatus = 'idle';
 let horses = {};      // keyed by index, revealed one by one
 let cheerCounts = {};
@@ -152,6 +216,12 @@ onValue(ref(db, 'currentRace'), (snap) => {
   const newStatus = data.status || 'idle';
   const newHorses = data.horses || {};
   cheerCounts = data.cheers || {};
+  const newMode = data.cheerMode || 'vote';
+  if(newMode !== _cheerMode){
+    _cheerMode = newMode;
+    // Force full re-render when mode changes
+    grid.innerHTML = '';
+  }
 
   // Always update status (not just on change)
   raceStatus = newStatus;
@@ -205,12 +275,18 @@ function renderHorses() {
     return;
   }
 
-  // Add new horses or update existing
+  if (_cheerMode === 'spam') {
+    renderSpamMode(keys);
+  } else {
+    renderVoteMode(keys);
+  }
+}
+
+function renderVoteMode(keys){
   keys.forEach(idx => {
     const h = horses[idx];
     const existingBtn = document.getElementById('hbtn-' + idx);
     if (!existingBtn) {
-      // New horse revealed – create button
       const btn = document.createElement('button');
       btn.className = 'horse-btn' + (raceStatus !== 'running' ? ' locked' : '');
       btn.id = 'hbtn-' + idx;
@@ -228,8 +304,6 @@ function renderHorses() {
       btn.addEventListener('click', () => cheer(+idx, btn, h));
       grid.appendChild(btn);
     }
-
-    // Lock/unlock based on status
     const btn = document.getElementById('hbtn-' + idx);
     if (btn) {
       if (raceStatus === 'running') {
@@ -243,13 +317,68 @@ function renderHorses() {
   });
 }
 
+function renderSpamMode(keys){
+  // Rebuild spam grid if needed
+  if(!document.getElementById('spam-grid')){
+    grid.innerHTML = '';
+    const sg = document.createElement('div');
+    sg.className = 'spam-grid';
+    sg.id = 'spam-grid';
+    grid.appendChild(sg);
+  }
+  const sg = document.getElementById('spam-grid');
+
+  keys.forEach(idx => {
+    const h = horses[idx];
+    const count = cheerCounts[idx] || 0;
+    const existing = document.getElementById('spambtn-'+idx);
+
+    if(!existing){
+      const btn = document.createElement('button');
+      btn.id = 'spambtn-'+idx;
+      btn.className = 'spam-btn';
+      const bg = `radial-gradient(135deg, ${h.colorHex}33, ${h.colorHex}11)`;
+      btn.style.cssText = `background:${bg};border-color:${h.colorHex};`;
+      btn.innerHTML = `
+        <div class="spam-bubble" style="background:radial-gradient(circle at 40% 40%,${h.colorHex}cc,${h.colorHex}44);">
+          <span>${h.emoji}</span>
+        </div>
+        <div class="spam-info">
+          <span class="spam-name">${h.name}</span>
+          <span class="spam-ticket">${h.ticket}</span>
+        </div>
+        <div class="spam-fire" id="sfire-${idx}">🔥</div>`;
+      // Touch + click both
+      const onTap = (e)=>{ e.preventDefault(); if(raceStatus==='running') tapHorse(+idx, h, btn); };
+      btn.addEventListener('click', onTap);
+      btn.addEventListener('touchstart', onTap, {passive:false});
+      sg.appendChild(btn);
+    }
+    // Update fire counter
+    const fire = document.getElementById('sfire-'+idx);
+    if(fire) fire.textContent = count > 0 ? '🔥 '+count : '🔥';
+
+    // Locked state
+    const btn = document.getElementById('spambtn-'+idx);
+    if(btn){
+      btn.style.opacity = raceStatus==='running' ? '1' : '0.5';
+      btn.style.pointerEvents = raceStatus==='running' ? 'auto' : 'none';
+    }
+  });
+}
+
 function updateCounts() {
   Object.keys(horses).forEach(idx => {
-    const el = document.getElementById('hcount-' + idx);
-    if (!el) return;
     const count = cheerCounts[idx] || 0;
-    el.textContent = count > 0 ? '🔥 ' + count : '';
-    el.className = 'hb-cheers' + (count > 0 ? ' active' : '');
+    if(_cheerMode === 'spam'){
+      const fire = document.getElementById('sfire-'+idx);
+      if(fire) fire.textContent = count > 0 ? '🔥 '+count : '🔥';
+    } else {
+      const el = document.getElementById('hcount-' + idx);
+      if (!el) return;
+      el.textContent = count > 0 ? '🔥 ' + count : '';
+      el.className = 'hb-cheers' + (count > 0 ? ' active' : '');
+    }
   });
 }
 
