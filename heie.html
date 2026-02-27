@@ -90,7 +90,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, onValue, runTransaction, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBf2y5UvDRCcw3tlLiX6D2-Kpm5QygyXN4",
@@ -104,6 +104,29 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
+// ── Register as viewer ──
+const _viewerId = 'v_' + Math.random().toString(36).slice(2,10) + '_' + Date.now();
+let _myColor = null;
+let _viewerRef = null;
+
+function registerViewer(){
+  _viewerRef = ref(db, 'currentRace/viewers/' + _viewerId);
+  set(_viewerRef, { color: null });
+  // Auto-remove on disconnect
+  onDisconnect(_viewerRef).remove();
+}
+
+function updateViewerColor(colorHex){
+  _myColor = colorHex;
+  if(_viewerRef){
+    set(_viewerRef, { color: colorHex });
+  }
+}
+
+// Register when Firebase is ready
+registerViewer();
+
 
 const grid = document.getElementById('horses-grid');
 const statusBar = document.getElementById('status-bar');
@@ -151,6 +174,11 @@ function handleStatusChange(status, data) {
   if (status === 'drawing') {
     setStatus('drawing', '🎫 TREKNING PÅGÅR...');
     winnerCard.classList.remove('show');
+    myCheer = null;
+    _myColor = null;
+    myBanner.classList.remove('show');
+    // Re-register with no color for new race
+    if(_viewerRef) set(_viewerRef, { color: null });
   } else if (status === 'running') {
     setStatus('running', '🏁 LØPET ER I GANG – HEI!');
   } else if (status === 'finished') {
@@ -240,7 +268,6 @@ async function cheer(idx, btn, horse) {
     await runTransaction(prevRef, v => Math.max(0, (v || 0) - 1));
     document.getElementById('hbtn-' + myCheer)?.classList.remove('cheered');
   }
-
   if (myCheer === idx) return;
 
   myCheer = idx;
@@ -248,6 +275,8 @@ async function cheer(idx, btn, horse) {
 
   const cheerRef = ref(db, `currentRace/cheers/${idx}`);
   await runTransaction(cheerRef, v => (v || 0) + 1);
+  // Update viewer color to match horse
+  updateViewerColor(horse.colorHex);
 
   myBannerText.textContent = 'Du heier på ' + horse.name + '!';
   myBanner.classList.add('show');
