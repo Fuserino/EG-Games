@@ -92,6 +92,30 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
 @keyframes chaosGradient{0%{background-position:0% 0%;}100%{background-position:200% 0%;}}
 
 
+
+/* Spectator row */
+#spectator-row{
+  position:relative;z-index:10;
+  display:flex;align-items:center;flex-wrap:nowrap;
+  padding:3px 14px;gap:3px;
+  min-height:22px;flex-shrink:0;overflow:hidden;
+}
+.spec-dot{
+  width:16px;height:16px;border-radius:50%;flex-shrink:0;
+  background:#555;border:1.5px solid rgba(255,255,255,.2);
+  transition:background .4s ease, transform .2s ease;
+  animation:specPop .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes specPop{from{transform:scale(0);}to{transform:scale(1);}}
+.spec-dot.cheering{border-color:rgba(255,255,255,.6);transform:scale(1.15);}
+.spec-count{font-family:'Bebas Neue',cursive;font-size:.75rem;color:rgba(255,255,255,.35);letter-spacing:2px;margin-left:6px;white-space:nowrap;}
+
+/* Boosted horse glow */
+.horse-bubble.boosted-1{box-shadow:0 0 10px 3px rgba(255,180,0,.5)!important;}
+.horse-bubble.boosted-2{box-shadow:0 0 16px 5px rgba(255,140,0,.7)!important;animation:boostPulse .8s ease-in-out infinite alternate;}
+.horse-bubble.boosted-3{box-shadow:0 0 22px 7px rgba(255,80,0,.9)!important;animation:boostPulse .5s ease-in-out infinite alternate;}
+@keyframes boostPulse{from{filter:brightness(1.1);}to{filter:brightness(1.35);}}
+
 /* Screen shake */
 @keyframes shake{0%,100%{transform:translateX(0) translateY(0);}10%{transform:translateX(-8px) translateY(3px);}20%{transform:translateX(8px) translateY(-3px);}30%{transform:translateX(-6px) translateY(5px);}40%{transform:translateX(6px) translateY(-5px);}50%{transform:translateX(-4px) translateY(3px);}60%{transform:translateX(4px) translateY(-3px);}70%{transform:translateX(-3px) translateY(2px);}80%{transform:translateX(3px) translateY(-2px);}90%{transform:translateX(-1px) translateY(1px);}}
 .shaking{animation:shake .5s ease-out;}
@@ -370,6 +394,7 @@ body{font-family:'Barlow Condensed',sans-serif;background:var(--dark);color:var(
   <div class="race-main">
     <div class="track-container">
       <div class="track-bg"></div>
+      <div id="spectator-row"></div>
       <div class="finish-line"><div class="finish-checker" id="finish-checker"></div></div>
       <div class="track-lanes" id="track-lanes"></div>
     </div>
@@ -448,6 +473,7 @@ function fbPublishHorses(horses){
   // Reset race state – heie.html shows "trekning pågår"
   firebase.database().ref('currentRace').set({
     status: 'drawing',
+    viewers: null,
     horses: null,
     revealed: null,
     cheers: null,
@@ -501,6 +527,7 @@ function cheerBoost(count){
 // Listen for cheer counts – drives continuous boost in race tick
 function fbListenBoosts(){
   firebase.database().ref('currentRace/cheers').off();
+  fbListenViewers();
   firebase.database().ref('currentRace/cheers').on('value', (snap)=>{
     const prev = JSON.stringify(_cheerCounts);
     _cheerCounts = snap.val() || {};
@@ -528,6 +555,66 @@ function showCheerToast(horseName, count){
   t.classList.add('show');
   clearTimeout(t._hideTimer);
   t._hideTimer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+
+// ── Spectator / viewer tracking ──
+let _viewerData = {}; // { viewerId: { color } }
+
+function fbListenViewers(){
+  firebase.database().ref('currentRace/viewers').off();
+  firebase.database().ref('currentRace/viewers').on('value', (snap)=>{
+    _viewerData = snap.val() || {};
+    renderSpectators();
+    // Also update cheer-badge glow levels based on viewer counts per horse
+    updateBoostGlow();
+  });
+}
+
+function renderSpectators(){
+  const row = document.getElementById('spectator-row');
+  if(!row) return;
+  const ids = Object.keys(_viewerData);
+  const count = ids.length;
+
+  // Build dots – each viewer gets a colored dot
+  const dots = ids.map(id=>{
+    const v = _viewerData[id];
+    const color = v.color || '#555';
+    const isCheering = !!v.color;
+    return `<div class="spec-dot${isCheering?' cheering':''}" style="background:${color};" title="${isCheering?'Heier':'Ser på'}"></div>`;
+  }).join('');
+
+  const label = count>0 ? `<span class="spec-count">👥 ${count} tilskuer${count!==1?'e':''}</span>` : '';
+  row.innerHTML = dots + label;
+}
+
+function updateBoostGlow(){
+  if(!state.horses.length) return;
+  // Count cheerers per horse from viewer data
+  const cheererCount = {};
+  Object.values(_viewerData).forEach(v=>{
+    if(!v.color) return;
+    // Match color to horse
+    state.horses.forEach((h,i)=>{
+      if(h.colorObj.hex.toLowerCase() === v.color.toLowerCase()){
+        cheererCount[i] = (cheererCount[i]||0)+1;
+      }
+    });
+  });
+
+  state.horses.forEach((h,i)=>{
+    const el = document.getElementById('horse-'+i);
+    if(!el) return;
+    const bubble = el.querySelector('.horse-bubble');
+    if(!bubble) return;
+    // Remove old boost classes
+    bubble.classList.remove('boosted-1','boosted-2','boosted-3');
+    const cnt = cheererCount[i]||0;
+    if(cnt>=1 && cnt<=2) bubble.classList.add('boosted-1');
+    else if(cnt>=3 && cnt<=6) bubble.classList.add('boosted-2');
+    else if(cnt>6) bubble.classList.add('boosted-3');
+  });
 }
 
 function updateCheerBar(){
