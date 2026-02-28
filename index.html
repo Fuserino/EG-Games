@@ -1296,6 +1296,7 @@ function showSetup(){
 
 // SETTINGS
 function updateSettingLabel(key,val){
+  if(key==='cheer-mode'){state.settings.cheerMode=val;document.getElementById('lbl-cheer-mode').textContent=(val==='spam'?'Trykk-modus':'Én stemme');return;}
   val=+val;
   if(key==='speed'){state.settings.speed=val;document.getElementById('lbl-speed').textContent=SPEED_LABELS[val];}
   if(key==='duration'){state.settings.duration=val;document.getElementById('lbl-duration').textContent=val+'s';}
@@ -1305,7 +1306,6 @@ function updateSettingLabel(key,val){
   if(key==='vol-cheer'){state.settings.volCheer=val/100;document.getElementById('lbl-vol-cheer').textContent=(val===0?'Av':val+'%');}
   if(key==='vol-fx'){state.settings.volFx=val/100;document.getElementById('lbl-vol-fx').textContent=(val===0?'Av':val+'%');}
   if(key==='vol-voice'){state.settings.volVoice=val/100;document.getElementById('lbl-vol-voice').textContent=(val===0?'Av':val+'%');}
-  if(key==='cheer-mode'){state.settings.cheerMode=val;document.getElementById('lbl-cheer-mode').textContent=(val==='spam'?'Trykk-modus':'Én stemme');}
 }
 
 // BLOCKS
@@ -1557,12 +1557,13 @@ function runRace(){
       if(state.racePhase!=='running'){clearInterval(decayInterval);return;}
       const keys=Object.keys(_cheerCounts);
       if(!keys.length) return;
+      let hasPositive=false;
       const updates={};
       keys.forEach(k=>{
-        const v=(_cheerCounts[k]||0);
-        if(v>0) updates[k]=Math.max(0,v-3); // decay 3 points per 500ms
+        const v=Number(_cheerCounts[k])||0;
+        if(v>0){updates[k]=Math.max(0,v-3);hasPositive=true;}
       });
-      firebase.database().ref('currentRace/cheers').update(updates);
+      if(hasPositive) firebase.database().ref('currentRace/cheers').update(updates);
     },500);
   }
   const fps=60;
@@ -1573,10 +1574,11 @@ function runRace(){
   const basePerHorse=state.horses.map(()=>baseSpeed*(0.85+Math.random()*.3));
   scheduleChaosEvents(targetSecs);
   const trackEl=document.getElementById('track-lanes');
-  const totalWidth=(trackEl.offsetWidth||700)-130-40;
+  const rawWidth = trackEl ? trackEl.offsetWidth : 0;
+  const totalWidth = Math.max(400, (rawWidth||700)-130-40);
   // Win when midpoint of bubble (26px from left edge) crosses finish
-  const bubbleMidOffset=26; // half of 52px bubble
-  const finishThreshold=1-(bubbleMidOffset/totalWidth);
+  const bubbleMidOffset=26;
+  const finishThreshold=Math.max(0.8, 1-(bubbleMidOffset/totalWidth));
 
   const tick=()=>{
     if(state.racePhase!=='running')return;
@@ -1585,7 +1587,7 @@ function runRace(){
       const h=state.horses[i];
       const cheer=cheerBoost(_cheerCounts[i]||0);
       const totalMult=h.speedMult*(1+cheer);
-      const delta=basePerHorse[i]*totalMult*(1-variance/2+Math.random()*variance);
+      const delta=isNaN(totalMult)||isNaN(basePerHorse[i])?0:basePerHorse[i]*totalMult*(1-variance/2+Math.random()*variance);
       state.positions[i]=Math.max(0,state.positions[i]+delta);
       if(state.positions[i]>=finishThreshold && state.winner===-1){
         state.winner=i;
